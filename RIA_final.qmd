@@ -18,7 +18,7 @@ library(stargazer)
 # Data
 
 ```{r}
-data_asean_raw <- read.csv("C:/Users/hanin/Documents/Main files/EGEI/Classes_Gent/Part B_Regional Integration Analysis/RIA_final_proj/Gravity_csv_V202211/Gravity_V202211.csv")
+data_asean_raw <- read.csv("./Gravity_csv_V202211/Gravity_V202211.csv")
 ```
 
 
