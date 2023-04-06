@@ -1,0 +1,152 @@
+---
+title: "RIA final project - Evolution of Japan's trade flows after signing the ASEAN+1 in 1977"
+author: "Kateryna Hanina"
+format: html
+---
+
+Countries (11): Brunei (BRN), Cambodia (KHM), Indonesia (IDN), Laos (LAO), Malaysia (MYS), Myanmar (MMR), Philippines (PHL), Singapore (SGP), Thailand (THA), Vietnam (VNM), Japan (JPN).
+
+
+# General
+```{r}
+library(tidyverse)
+library(fixest)
+library(stargazer)
+```
+
+
+# Data
+
+```{r}
+data_asean_raw <- read.csv("C:/Users/hanin/Documents/Main files/EGEI/Classes_Gent/Part B_Regional Integration Analysis/RIA_final_proj/Gravity_csv_V202211/Gravity_V202211.csv")
+```
+
+
+## Genral modifications
+```{r}
+#Select only countries and columns we need
+#remove non-existing countries after they started existing in different form (+Singapore independence since 1965)
+#remove tech variables
+data_asean_selected <- data_asean_raw %>%
+  select(c(year, country_id_o, country_id_d, iso3_o, iso3_d, country_exists_o, country_exists_d, dist, comlang_off, comlang_ethno, comcol, col45, comleg_pretrans, comleg_posttrans, comrelig, col_dep_end_conflict, gdp_o, gdp_d, gatt_o, gatt_d, wto_o, wto_d, rta_type, tradeflow_comtrade_d)) %>%
+  filter(year >= 1965 & country_exists_o == 1 & country_exists_d == 1) %>%
+  select(-c(country_id_o, country_id_d, country_exists_o, country_exists_d))
+```
+
+```{r}
+#set rta_type and trade flows to 0 if NA
+data_asean_selected <- data_asean_selected %>%
+  mutate(rta_type = coalesce(rta_type, 0),
+         tradeflow_comtrade_d = coalesce(tradeflow_comtrade_d, 0))
+```
+
+```{r}
+#create new column: general dummy for presence of any RTA for all countries
+data_asean_selected <- data_asean_selected %>%
+  mutate(rta = if_else(rta_type == 0, "0", "1"), .after = wto_d)
+```
+
+## ASEAN specific modifications
+```{r}
+#create tech columns for 10 ASEAN member states by origin and destination
+#and manually assign dummy 1 for ASEAN+1 agreement with Japan since 2008
+data_asean_selected <- data_asean_selected %>%
+  mutate(asean_ms_o = case_when(iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM") ~ 1, TRUE ~ 0),
+         asean_ms_d = case_when(iso3_d %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM") ~ 1, TRUE ~ 0),
+         rta_asean_plus = case_when((year>=2008 & asean_ms_o==1 & iso3_d=="JPN") | (year>=2008 & iso3_o=="JPN" & asean_ms_d==1) ~ 1, TRUE ~ 0))
+```
+
+
+
+
+
+# Traditional Graivity Estimates
+
+## 1. Naive gravity
+```{r}
+# Select necessary years with 4 year intervals
+asean_selected_tradit <- data_asean_selected %>%
+  filter(year %in% seq(1965, 2021, 4))
+```
+
+```{r}
+# Construct symmetric pair id's for exporter and importer
+asean_selected_tradit <- asean_selected_tradit %>%
+  mutate(pair = paste(pmin(iso3_o,iso3_d),pmax(iso3_o,iso3_d),sep = "_")) %>%
+  group_by(pair) %>%
+  mutate(pair_id = cur_group_id())
+
+
+# Construct exporter output and importer expenditure
+#(is it GDPs?? Do we need to calculate them or can use gdp_o and gdp_d?)
+asean_selected_tradit <- asean_selected_tradit %>%
+  group_by(iso3_o,year) %>%
+  mutate(Y_it = sum(tradeflow_comtrade_d)) %>%
+  group_by(iso3_d,year) %>%
+  mutate(E_jt = sum(tradeflow_comtrade_d))
+```
+
+
+We have problems with zeroes here, we get -inf in logged columns. But should be fine if we specify in estimation that tradeflows>0 for traditional estimates
+```{r}
+# calculate logs
+asean_selected_tradit <- asean_selected_tradit %>%
+  mutate(across(c(tradeflow_comtrade_d, Y_it, E_jt, dist, gdp_o, gdp_d), ~log(.x), .names="ln_{.col}"))
+```
+
+```{r}
+# Estimation with feols, which allows for FE and clusters
+
+# without controlling for WTO, GATT and RTAs and with calculated Y and E
+fit_ols1 <- feols(ln_tradeflow_comtrade_d ~ ln_dist + ln_Y_it + ln_E_jt + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig,
+                data = asean_selected_tradit %>%
+                  filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d), 
+                vcov = cluster ~ pair_id)
+summary(fit_ols1)
+
+# without controlling for WTO, GATT and RTAs and with true gdp_o and gdp_d
+fit_ols2 <- feols(ln_tradeflow_comtrade_d ~ ln_dist + ln_gdp_o + ln_gdp_d + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig,
+                data = asean_selected_tradit %>%
+                  filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d), 
+                vcov = cluster ~ pair_id)
+summary(fit_ols2)
+```
+
+
+## 2. Proxy for MRT
+
+
+
+## 3. Fixed Effects
+
+
+
+## 4. PPML with FE
+
+
+
+
+
+
+
+
+
+TRIALS (NOT MAIN CODE)
+```{r}
+class(data_asean_selected$rta_type)
+table(data_asean_selected$rta)
+```
+
+```{r}
+find_rta <- data_asean_selected %>% filter(year>2002)
+table(find_rta$iso3_d, find_rta$rta_type, find_rta$year)
+```
+
+
+```{r}
+count(unique(data_asean_selected$tradeflow_baci))
+table(data_asean_selected$country_id_d, data_asean_selected$country_exists_d)
+data_asean_selected %>% filter(iso3_d =="SGP")
+```
+
+
