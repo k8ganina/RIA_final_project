@@ -92,6 +92,10 @@ We have problems with zeroes here, we get -inf in logged columns. But should be 
 # calculate logs
 asean_selected_tradit <- asean_selected_tradit %>%
   mutate(across(c(tradeflow_comtrade_d, Y_it, E_jt, dist, gdp_o, gdp_d), ~log(.x), .names="ln_{.col}"))
+
+# ADELE: for this one I decided to add another filter at the beginning to get only the trade flows>0 with the code: 
+## Select necessary years with 4 year intervals: asean_selected_tradit <- data_asean_selected %>% filter(year %in% seq(1965, 2021, 4)& tradeflow_comtrade_d>0)
+#By doing this, I can get the log for the variables (otherwise I couldn't) and I can avoid the -inf. I know that the teacher did it also during running the regression but for me it was better to specify it before otherwise I couldn't run his code. 
 ```
 
 ```{r}
@@ -109,15 +113,48 @@ fit_ols2 <- feols(ln_tradeflow_comtrade_d ~ ln_dist + ln_gdp_o + ln_gdp_d + coml
                 data = asean_selected_tradit %>%
                   filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d), 
                 vcov = cluster ~ pair_id)
-summary(fit_ols2)
+summary(fit_ols2) 
+#ADELE: For me results are less significants with true gdp values x-10 (??) + better R^2 with using the proxies for GDP (62%)
 ```
 
 
 ## 2. Proxy for MRT
 
+```{r}
+## Calculate remoteness indices
+asean_selected_tradit = asean_selected_tradit %>%
+  group_by(year) %>%
+  mutate(Y_t = sum(Y_it), E_t = sum(E_jt)) %>%
+  group_by(iso3_o, year) %>%
+  mutate(remoteness_exp = sum(dist /(E_jt / E_t))) %>%
+  group_by(iso3_d, year) %>%
+  mutate(remoteness_imp = sum(dist / (Y_it / Y_t))) %>%
+  mutate(ln_remoteness_exp = log(remoteness_exp), 
+         ln_remoteness_imp = log(remoteness_imp))
 
+##Estimation
+fit_remoteness = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comlang_ethno + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + col_dep_end_conflict + ln_Y_it + ln_E_jt + ln_remoteness_exp + ln_remoteness_imp,
+                       data = asean_selected_tradit %>% filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
+                       vcov = cluster ~ pair_id)
+summary(fit_remoteness)# better R^2 (65%) with adding remoteness
+```
 
 ## 3. Fixed Effects
+```{r}
+## Create fixed effects 
+asean_selected_tradit = asean_selected_tradit %>%
+     unite("fe_exp_year",c(iso3_o,year),sep="_",remove=FALSE) %>%
+     unite("fe_imp_year",c(iso3_d,year),sep="_",remove=FALSE) %>%
+     relocate(c(fe_exp_year,fe_imp_year), .after = 5)#in order to make it clear in the table
+
+## Estimation 
+fit_fixedeffects = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comlang_ethno + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + col_dep_end_conflict + ln_Y_it + ln_E_jt |
+                           fe_exp_year + fe_imp_year,
+                         data = asean_selected_tradit %>% filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
+                         vcov = cluster ~ pair_id)
+summary(fit_fixedeffects) #probably something wrong in the variance here because R^2=1 (not impossible but low chances to get this result)
+
+```
 
 
 
