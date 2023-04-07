@@ -125,15 +125,6 @@ summary(fit_ols2)
 
 
 
-##add code from Adele
-```{r}
-## Select necessary data
-data_asean_selected = data_asean_selected %>%
-  filter(year %in% seq(1965, 2021, 4)) #1965 is the starting point since Singapor became independent in 1965
-```
-
-
-
 
 
 
