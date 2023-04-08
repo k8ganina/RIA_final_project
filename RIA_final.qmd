@@ -64,9 +64,9 @@ data_asean_selected <- data_asean_selected %>%
 
 ## 1. Naive gravity
 ```{r}
-# Select necessary years with 4 year intervals
+# Select necessary years with 3 year intervals
 asean_selected_tradit <- data_asean_selected %>%
-  filter(year %in% seq(1965, 2021, 4))
+  filter(year %in% seq(1965, 2020, 3))
 ```
 
 ```{r}
@@ -119,6 +119,7 @@ summary(fit_ols2)
 ```{r}
 ## Calculate remoteness indices
 asean_selected_tradit = asean_selected_tradit %>%
+  filter(Y_it > 0 & E_jt >0) %>%
   group_by(year) %>%
   mutate(Y_t = sum(Y_it), E_t = sum(E_jt)) %>%
   group_by(iso3_o, year) %>%
@@ -127,14 +128,15 @@ asean_selected_tradit = asean_selected_tradit %>%
   mutate(remoteness_imp = sum(dist / (Y_it / Y_t))) %>%
   mutate(ln_remoteness_exp = log(remoteness_exp), 
          ln_remoteness_imp = log(remoteness_imp))
-#Weird results for the log of remoteness(??)
+#Adele: Weird results for the log of remoteness(??) -- Katya: I tried to add condition on Y and E >0 and then it estimated fine (but not sure we are allowed to deal with zeroes in Y and E in this way)
 
 ##Estimation
-fit_remoteness = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comlang_ethno + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + col_dep_end_conflict + ln_Y_it + ln_E_jt + ln_remoteness_exp + ln_remoteness_imp,
+fit_remoteness = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + ln_Y_it + ln_E_jt + ln_remoteness_exp + ln_remoteness_imp,
                        data = asean_selected_tradit %>% filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
                        vcov = cluster ~ pair_id)
-summary(fit_remoteness)# better R^2 (65%) with adding remoteness
-#When I run it I got "All observations contain NAs. Estimation cannot be done. Check whether you know how to fix it.
+summary(fit_remoteness) # Adele:better R^2 (65%) with adding remoteness --- Katya: I removed variable for conflict, cause we loose too many observations, then with this estimation we have R^2 56%, almost the same as in naive model
+
+#Adele:When I run it I got "All observations contain NAs. Estimation cannot be done. Check whether you know how to fix it. --- Katya: fixed with >0 for Y and E (not sure we can do it)
 ```
 
 ## 3. Fixed Effects
