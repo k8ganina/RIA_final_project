@@ -92,10 +92,6 @@ We have problems with zeroes here, we get -inf in logged columns. But should be 
 # calculate logs
 asean_selected_tradit <- asean_selected_tradit %>%
   mutate(across(c(tradeflow_comtrade_d, Y_it, E_jt, dist, gdp_o, gdp_d), ~log(.x), .names="ln_{.col}"))
-
-# ADELE: for this one I decided to add another filter at the beginning to get only the trade flows>0 with the code: 
-## Select necessary years with 4 year intervals: asean_selected_tradit <- data_asean_selected %>% filter(year %in% seq(1965, 2021, 4)& tradeflow_comtrade_d>0)
-#By doing this, I can get the log for the variables (otherwise I couldn't) and I can avoid the -inf. I know that the teacher did it also during running the regression but for me it was better to specify it before otherwise I couldn't run his code. 
 ```
 
 ```{r}
@@ -114,7 +110,7 @@ fit_ols2 <- feols(ln_tradeflow_comtrade_d ~ ln_dist + ln_gdp_o + ln_gdp_d + coml
                   filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d), 
                 vcov = cluster ~ pair_id)
 summary(fit_ols2) 
-#ADELE: For me results are less significants with true gdp values x-10 (??) + better R^2 with using the proxies for GDP (62%)
+#ADELE: For me results are less significants with true gdp values
 ```
 
 
@@ -131,12 +127,14 @@ asean_selected_tradit = asean_selected_tradit %>%
   mutate(remoteness_imp = sum(dist / (Y_it / Y_t))) %>%
   mutate(ln_remoteness_exp = log(remoteness_exp), 
          ln_remoteness_imp = log(remoteness_imp))
+#Weird results for the log of remoteness(??)
 
 ##Estimation
 fit_remoteness = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comlang_ethno + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + col_dep_end_conflict + ln_Y_it + ln_E_jt + ln_remoteness_exp + ln_remoteness_imp,
                        data = asean_selected_tradit %>% filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
                        vcov = cluster ~ pair_id)
 summary(fit_remoteness)# better R^2 (65%) with adding remoteness
+#When I run it I got "All observations contain NAs. Estimation cannot be done. Check whether you know how to fix it.
 ```
 
 ## 3. Fixed Effects
@@ -159,6 +157,15 @@ summary(fit_fixedeffects) #probably something wrong in the variance here because
 
 
 ## 4. PPML with FE
+```{r}
+fit_poisson = fepois(trade ~ ln_dist + cntg + lang + clny |
+                       fe_exp_year + fe_imp_year,
+                     data = x_app1 %>% filter(exporter != importer),
+                     vcov = cluster ~ pair_id)
+summary(fit_poisson)
+#Didn't do this one, need to replace by the true names of variables
+```
+
 
 
 
