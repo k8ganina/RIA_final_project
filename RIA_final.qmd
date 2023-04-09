@@ -174,7 +174,6 @@ summary(fit_poisson)
 #A lot of observations were removed because of NAs and also 'comleg_posttrans' because of colinearity. Different results from OLS but adj. pseudo R2=0.99
 
 ## Robustness check of PPML
-
 ```
 
 
