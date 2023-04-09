@@ -22,7 +22,7 @@ data_asean_raw <- read.csv("./Gravity_csv_V202211/Gravity_V202211.csv")
 ```
 
 
-## Genral modifications
+## General modifications
 ```{r}
 #Select only countries and columns we need
 #remove non-existing countries after they started existing in different form (+Singapore independence since 1965)
@@ -111,6 +111,7 @@ fit_ols2 <- feols(ln_tradeflow_comtrade_d ~ ln_dist + ln_gdp_o + ln_gdp_d + coml
                 vcov = cluster ~ pair_id)
 summary(fit_ols2) 
 #ADELE: For me results are less significants with true gdp values
+#GAELLE: Prof uses Y and E for the naive gravity model, note the true gdp + agree with Adèle
 ```
 
 
@@ -137,6 +138,8 @@ fit_remoteness = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol 
 summary(fit_remoteness) # Adele:better R^2 (65%) with adding remoteness --- Katya: I removed variable for conflict, cause we loose too many observations, then with this estimation we have R^2 56%, almost the same as in naive model
 
 #Adele:When I run it I got "All observations contain NAs. Estimation cannot be done. Check whether you know how to fix it. --- Katya: fixed with >0 for Y and E (not sure we can do it)
+
+#Gaelle: sounds weird to deal with zeros but if it only works like this, then I think that it is correct
 ```
 
 ## 3. Fixed Effects
@@ -154,18 +157,24 @@ fit_fixedeffects = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comla
                          vcov = cluster ~ pair_id)
 summary(fit_fixedeffects) #probably something wrong in the variance here because R^2=1 (not impossible but low chances to get this result)
 
+#Gaelle: in the slides, he removed ln_Y_it and ln_E_jt because he said that there was collinearity BUT, with removing it, we still find R2=1 which is weird. Moreover, it says that 5 variables have been removed because of collinearity. How to fix that?
 ```
 
 
 
 ## 4. PPML with FE
 ```{r}
-fit_poisson = fepois(trade ~ ln_dist + cntg + lang + clny |
-                       fe_exp_year + fe_imp_year,
-                     data = x_app1 %>% filter(exporter != importer),
+## PPML model
+fit_poisson = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comlang_ethno + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + col_dep_end_conflict |
+                           fe_exp_year + fe_imp_year,
+                     data = asean_selected_tradit %>% filter(iso3_o != iso3_d),
                      vcov = cluster ~ pair_id)
 summary(fit_poisson)
-#Didn't do this one, need to replace by the true names of variables
+
+#A lot of observations were removed because of NAs and also 'comleg_posttrans' because of colinearity. Different results from OLS but adj. pseudo R2=0.99
+
+## Robustness check of PPML
+
 ```
 
 
