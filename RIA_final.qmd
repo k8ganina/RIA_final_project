@@ -18,7 +18,7 @@ library(stargazer)
 # Data
 
 ```{r}
-data_asean_raw <- read.csv("./Gravity_csv_V202211/Gravity_V202211.csv")
+#data_asean_raw <- read.csv("./Gravity_csv_V202211/Gravity_V202211.csv")
 ```
 
 
@@ -110,8 +110,8 @@ fit_ols2 <- feols(ln_tradeflow_comtrade_d ~ ln_dist + ln_gdp_o + ln_gdp_d + coml
                   filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d), 
                 vcov = cluster ~ pair_id)
 summary(fit_ols2) 
-#ADELE: For me results are less significants with true gdp values
 #GAELLE: Prof uses Y and E for the naive gravity model, note the true gdp + agree with Adèle
+#ADELE: with this code, I find better significant results with true GDP, also a better R squared, but it's not in adequation with its code so we need to know if we have the choice to use the one we want or not.
 ```
 
 
@@ -129,17 +129,17 @@ asean_selected_tradit = asean_selected_tradit %>%
   mutate(remoteness_imp = sum(dist / (Y_it / Y_t))) %>%
   mutate(ln_remoteness_exp = log(remoteness_exp), 
          ln_remoteness_imp = log(remoteness_imp))
-#Adele: Weird results for the log of remoteness(??) -- Katya: I tried to add condition on Y and E >0 and then it estimated fine (but not sure we are allowed to deal with zeroes in Y and E in this way)
+#Katya: I tried to add condition on Y and E >0 and then it estimated fine (but not sure we are allowed to deal with zeroes in Y and E in this way)
+#Adele: I checked and I think we have 2 options here; set Y and E to 0, or to the mean; maybe I will try with the mean and see if the results are similar.
 
 ##Estimation
 fit_remoteness = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + ln_Y_it + ln_E_jt + ln_remoteness_exp + ln_remoteness_imp,
                        data = asean_selected_tradit %>% filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
                        vcov = cluster ~ pair_id)
-summary(fit_remoteness) # Adele:better R^2 (65%) with adding remoteness --- Katya: I removed variable for conflict, cause we loose too many observations, then with this estimation we have R^2 56%, almost the same as in naive model
-
-#Adele:When I run it I got "All observations contain NAs. Estimation cannot be done. Check whether you know how to fix it. --- Katya: fixed with >0 for Y and E (not sure we can do it)
-
+summary(fit_remoteness) 
+#Katya: I removed variable for conflict, cause we loose too many observations, then with this estimation we have R^2 56%, almost the same as in naive model 
 #Gaelle: sounds weird to deal with zeros but if it only works like this, then I think that it is correct
+#Adele:checked and look good for me; same as for the previous one, if we cannot deal with 0 for this one, we can still set Y and E to the mean.
 ```
 
 ## 3. Fixed Effects
@@ -158,6 +158,7 @@ fit_fixedeffects = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comla
 summary(fit_fixedeffects) #probably something wrong in the variance here because R^2=1 (not impossible but low chances to get this result)
 
 #Gaelle: in the slides, he removed ln_Y_it and ln_E_jt because he said that there was collinearity BUT, with removing it, we still find R2=1 which is weird. Moreover, it says that 5 variables have been removed because of collinearity. How to fix that?
+#Adele: I think it's normal that some variables are removed because the fixed effects are capturing them. That's why there is the |
 ```
 
 
