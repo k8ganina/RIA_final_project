@@ -183,6 +183,9 @@ summary(fit_poisson)
 
 
 
+
+
+
 TRIALS (NOT MAIN CODE)
 ```{r}
 class(data_asean_selected$rta_type)
