@@ -6,14 +6,13 @@ format: html
 
 Countries (11): Brunei (BRN), Cambodia (KHM), Indonesia (IDN), Laos (LAO), Malaysia (MYS), Myanmar (MMR), Philippines (PHL), Singapore (SGP), Thailand (THA), Vietnam (VNM), Japan (JPN).
 
-
 # General
+
 ```{r}
 library(tidyverse)
 library(fixest) # perform estimations with multiple fixed-effects
 library(stargazer)
 ```
-
 
 # Data
 
@@ -21,8 +20,8 @@ library(stargazer)
 data_asean_raw <- read.csv("./Gravity_csv_V202211/Gravity_V202211.csv")
 ```
 
-
 ## General modifications
+
 ```{r}
 #Select only countries and columns we need
 #remove non-existing countries after they started existing in different form (+Singapore independence since 1965)
@@ -47,6 +46,7 @@ data_asean_selected <- data_asean_selected %>%
 ```
 
 ## ASEAN specific modifications
+
 ```{r}
 #create tech columns for 10 ASEAN member states by origin and destination
 #and manually assign dummy 1 for ASEAN+1 agreement with Japan since 2008
@@ -56,13 +56,10 @@ data_asean_selected <- data_asean_selected %>%
          rta_asean_plus = case_when((year>=2008 & asean_ms_o==1 & iso3_d=="JPN") | (year>=2008 & iso3_o=="JPN" & asean_ms_d==1) ~ 1, TRUE ~ 0))
 ```
 
-
-
-
-
-# Traditional Graivity Estimates
+# Traditional Gravity Estimates
 
 ## 1. Naive gravity
+
 ```{r}
 # Select necessary years with 3 year intervals
 asean_selected_tradit <- data_asean_selected %>%
@@ -86,8 +83,8 @@ asean_selected_tradit <- asean_selected_tradit %>%
   mutate(E_jt = sum(tradeflow_comtrade_d))
 ```
 
+We have problems with zeroes here, we get -inf in logged columns. But should be fine if we specify in estimation that tradeflows\>0 for traditional estimates
 
-We have problems with zeroes here, we get -inf in logged columns. But should be fine if we specify in estimation that tradeflows>0 for traditional estimates
 ```{r}
 # calculate logs
 asean_selected_tradit <- asean_selected_tradit %>%
@@ -113,7 +110,6 @@ summary(fit_ols2)
 #ADELE: For me results are less significants with true gdp values
 #GAELLE: Prof uses Y and E for the naive gravity model, note the true gdp + agree with Adèle
 ```
-
 
 ## 2. Proxy for MRT
 
@@ -143,6 +139,7 @@ summary(fit_remoteness) # Adele:better R^2 (65%) with adding remoteness --- Katy
 ```
 
 ## 3. Fixed Effects
+
 ```{r}
 ## Create fixed effects 
 asean_selected_tradit = asean_selected_tradit %>%
@@ -160,9 +157,8 @@ summary(fit_fixedeffects) #probably something wrong in the variance here because
 #Gaelle: in the slides, he removed ln_Y_it and ln_E_jt because he said that there was collinearity BUT, with removing it, we still find R2=1 which is weird. Moreover, it says that 5 variables have been removed because of collinearity. How to fix that?
 ```
 
-
-
 ## 4. PPML with FE
+
 ```{r}
 ## PPML model
 fit_poisson = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comlang_ethno + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + col_dep_end_conflict |
@@ -177,7 +173,9 @@ summary(fit_poisson)
 ```
 
 
-## 5. Estimates of RTAs
+# Estimates of RTAs
+
+## 1. Traditional estimates of RTAs
 ```{r}
 ## Specify country-specific intra-national trade dummies
 asean_selected_tradit = asean_selected_tradit %>%
@@ -206,11 +204,14 @@ summary(rta_poisson)
     #GAELLE: better R² but weird value for RTAs that seem to destroy trade -> maybe check robustness
 ```
 
+## 2. Allowing for trade diversion from domestic sales
+
 
 
 
 
 TRIALS (NOT MAIN CODE)
+
 ```{r}
 class(data_asean_selected$rta_type)
 table(data_asean_selected$rta)
@@ -221,11 +222,8 @@ find_rta <- data_asean_selected %>% filter(year>2002)
 table(find_rta$iso3_d, find_rta$rta_type, find_rta$year)
 ```
 
-
 ```{r}
 count(unique(data_asean_selected$tradeflow_baci))
 table(data_asean_selected$country_id_d, data_asean_selected$country_exists_d)
 data_asean_selected %>% filter(iso3_d =="SGP")
 ```
-
-
