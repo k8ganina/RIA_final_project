@@ -215,6 +215,7 @@ vcov = cluster ~ pair_id)
 
 summary(rta_poisson_intra)
 ```
+
 ## 3. Addressing potential endogeneity of RTAs
 ```{r}
 ## PPML estimation
