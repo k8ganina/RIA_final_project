@@ -205,8 +205,40 @@ summary(rta_poisson)
 ```
 
 ## 2. Allowing for trade diversion from domestic sales
+```{r}
+## PPML estimation
+rta_poisson_intra = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comlang_ethno + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + col_dep_end_conflict + rta |
+                           fe_exp_year + fe_imp_year + D_trade_ii,
+data = asean_selected_tradit,
+vcov = cluster ~ pair_id)
 
+summary(rta_poisson_intra)
+```
+## 3. Addressing potential endogeneity of RTAs
+```{r}
+## PPML estimation
+rta_endo = fepois(tradeflow_comtrade_d ~ rta |
+fe_exp_year + fe_imp_year + pair_id,
+data = asean_selected_tradit,
+vcov = cluster ~ pair_id)
 
+## Head of results
+head(asean_selected_tradit[-rta_endo$obs_selection$obsRemoved,
+c("iso3_o","iso3_d","year","tradeflow_comtrade_d")] %>%
+arrange(iso3_o,iso3_d,year),3)
+
+summary(rta_endo)
+```
+
+## 4. Testing for potential reverse causality between trade and RTAs
+```{r}
+## Identify future RTAs
+asean_selected_tradit = asean_selected_tradit %>%
+  group_by(iso3_o,iso3_d) %>%
+  mutate(rta_lead4 = tlead(rta,n=4,along_with = year))
+
+#GAELLE: Idk why but there is a problem in the formula here
+```
 
 
 
