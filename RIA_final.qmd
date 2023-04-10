@@ -177,6 +177,34 @@ summary(fit_poisson)
 ```
 
 
+## 5. Estimates of RTAs
+```{r}
+## Specify country-specific intra-national trade dummies
+asean_selected_tradit = asean_selected_tradit %>%
+mutate(D_trade_ii = ifelse(iso3_o==iso3_d,iso3_o,"international"))
+
+## OLS estimation
+rta_ols = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comlang_ethno + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + col_dep_end_conflict + rta |
+                           fe_exp_year + fe_imp_year,
+data = asean_selected_tradit %>%
+filter(ln_tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
+vcov = cluster ~ pair_id)
+
+summary(rta_ols)
+
+    #GAELLE: we have again R²=1, maybe we should check that again
+
+## PPML estimation
+rta_poisson = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comlang_ethno + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + col_dep_end_conflict + rta |
+                           fe_exp_year + fe_imp_year,
+data = asean_selected_tradit %>%
+filter(iso3_o != iso3_d),
+vcov = cluster ~ pair_id)
+
+summary(rta_poisson)
+
+    #GAELLE: better R² but weird value for RTAs that seem to destroy trade -> maybe check robustness
+```
 
 
 
