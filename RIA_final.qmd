@@ -166,47 +166,58 @@ fit_poisson = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col
                      vcov = cluster ~ pair_id)
 summary(fit_poisson)
 
-#A lot of observations were removed because of NAs and also 'comleg_posttrans' because of colinearity. Different results from OLS but adj. pseudo R2=0.99
 
-## Robustness check of PPML
+## Robustness check of PPML to do (with leads)
 ```
 
 
-# Estimates of RTAs
+# Estimates of RTAs (general RTA, not ASEAN specific)
 
-## 1. Traditional estimates of RTAs
+## 1. Traditional estimates of RTAs (OLS)
 ```{r}
 ## Specify country-specific intra-national trade dummies
 asean_selected_tradit = asean_selected_tradit %>%
 mutate(D_trade_ii = ifelse(iso3_o==iso3_d,iso3_o,"international"))
 
 ## OLS estimation
-rta_ols = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comlang_ethno + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + col_dep_end_conflict + rta |
+rta_ols = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + rta |
                            fe_exp_year + fe_imp_year,
 data = asean_selected_tradit %>%
 filter(ln_tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
 vcov = cluster ~ pair_id)
 
 summary(rta_ols)
+```
 
-    #GAELLE: we have again R²=1, maybe we should check that again
 
-## PPML estimation
-rta_poisson = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comlang_ethno + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + col_dep_end_conflict + rta |
+## 2. Traditional estimates of RTAs (PPML)
+```{r}
+rta_poisson = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + rta |
                            fe_exp_year + fe_imp_year,
 data = asean_selected_tradit %>%
 filter(iso3_o != iso3_d),
 vcov = cluster ~ pair_id)
 
 summary(rta_poisson)
+```
+### we can also estimate regression where we split RTA in types after we select the preffered specification
+```{r}
+rta_poisson_types = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + as.factor(rta_type) |
+                           fe_exp_year + fe_imp_year,
+data = asean_selected_tradit %>%
+filter(iso3_o != iso3_d),
+vcov = cluster ~ pair_id)
 
-    #GAELLE: better R² but weird value for RTAs that seem to destroy trade -> maybe check robustness
+summary(rta_poisson_types)
+
+# is it ok that some RTAs have negative effects? --- maybe we need to exclude combined types of RTA
 ```
 
-## 2. Allowing for trade diversion from domestic sales
+
+## 3. Allowing for trade diversion from domestic sales (includes FE for intra-trade)
 ```{r}
 ## PPML estimation
-rta_poisson_intra = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comlang_ethno + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + col_dep_end_conflict + rta |
+rta_poisson_intra = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + rta |
                            fe_exp_year + fe_imp_year + D_trade_ii,
 data = asean_selected_tradit,
 vcov = cluster ~ pair_id)
@@ -214,7 +225,7 @@ vcov = cluster ~ pair_id)
 summary(rta_poisson_intra)
 ```
 
-## 3. Addressing potential endogeneity of RTAs
+## 4. Addressing potential endogeneity of RTAs
 ```{r}
 ## PPML estimation
 rta_endo = fepois(tradeflow_comtrade_d ~ rta |
@@ -230,7 +241,7 @@ arrange(iso3_o,iso3_d,year),3)
 summary(rta_endo)
 ```
 
-## 4. Testing for potential reverse causality between trade and RTAs
+## 5. Testing for potential reverse causality between trade and RTAs
 ```{r}
 ## Identify future RTAs
 asean_selected_tradit = asean_selected_tradit %>%
