@@ -114,7 +114,7 @@ summary(fit_ols2)
 ## 2. Proxy for MRT
 
 ```{r}
-## Calculate remoteness indices
+## Calculate remoteness indices - Should we use true GDP or proxies for remoteness indices?
 asean_selected_tradit = asean_selected_tradit %>%
   filter(Y_it > 0 & E_jt >0) %>%
   group_by(year) %>%
@@ -148,21 +148,19 @@ asean_selected_tradit = asean_selected_tradit %>%
      relocate(c(fe_exp_year,fe_imp_year), .after = 5)#in order to make it clear in the table
 
 ## Estimation 
-fit_fixedeffects = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comlang_ethno + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + col_dep_end_conflict + ln_Y_it + ln_E_jt |
+fit_fixedeffects = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig |
                            fe_exp_year + fe_imp_year,
                          data = asean_selected_tradit %>% filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
                          vcov = cluster ~ pair_id)
-summary(fit_fixedeffects) #probably something wrong in the variance here because R^2=1 (not impossible but low chances to get this result)
-
-#Gaelle: in the slides, he removed ln_Y_it and ln_E_jt because he said that there was collinearity BUT, with removing it, we still find R2=1 which is weird. Moreover, it says that 5 variables have been removed because of collinearity. How to fix that?
-#Adele: I think it's normal that some variables are removed because the fixed effects are capturing them. That's why there is the |
+summary(fit_fixedeffects) 
+# Why do we get this negative coefficient for comleg_posttrans? Especially because the one for comleg_pretrans is positive..
 ```
 
 ## 4. PPML with FE
 
 ```{r}
 ## PPML model
-fit_poisson = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comlang_ethno + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + col_dep_end_conflict |
+fit_poisson = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig |
                            fe_exp_year + fe_imp_year,
                      data = asean_selected_tradit %>% filter(iso3_o != iso3_d),
                      vcov = cluster ~ pair_id)
