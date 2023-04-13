@@ -14,6 +14,31 @@ library(fixest) # perform estimations with multiple fixed-effects
 library(stargazer)
 ```
 
+# Custom formulas
+
+```{r}
+# To get lagged values in function of CONSECUTIVE observations (here years)
+tlag <- function(x, n = 1L, along_with, default = NA) { 
+  if (!is.numeric(n) | (length(n)>1)) stop("n must be a numeric of length one")
+  index <- match(along_with - n, along_with, incomparables = NA)
+  out <- x[index]
+  if (!is.na(default)) out[which(is.na(index))] <- default
+  out
+}
+```
+
+```{r}
+# To get lead values in function of CONSECUTIVE observations (here years)
+tlead <- function(x, n = 1L, along_with, default = NA) { 
+  if (!is.numeric(n) | (length(n)>1)) stop("n must be a numeric of length one")
+  index <- match(along_with + n, along_with, incomparables = NA)
+  out <- x[index]
+  if (!is.na(default)) out[which(is.na(index))] <- default
+  out
+}
+```
+
+
 # Data
 
 ```{r}
@@ -165,9 +190,6 @@ fit_poisson = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col
                      data = asean_selected_tradit %>% filter(iso3_o != iso3_d),
                      vcov = cluster ~ pair_id)
 summary(fit_poisson)
-
-
-## Robustness check of PPML to do (with leads)
 ```
 
 
@@ -178,7 +200,9 @@ summary(fit_poisson)
 ## Specify country-specific intra-national trade dummies
 asean_selected_tradit = asean_selected_tradit %>%
 mutate(D_trade_ii = ifelse(iso3_o==iso3_d,iso3_o,"international"))
+```
 
+```{r}
 ## OLS estimation
 rta_ols = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + rta |
                            fe_exp_year + fe_imp_year,
@@ -188,6 +212,7 @@ vcov = cluster ~ pair_id)
 
 summary(rta_ols)
 ```
+
 
 
 ## 2. Traditional estimates of RTAs (PPML)
@@ -200,6 +225,7 @@ vcov = cluster ~ pair_id)
 
 summary(rta_poisson)
 ```
+
 ### we can also estimate regression where we split RTA in types after we select the preffered specification
 ```{r}
 rta_poisson_types = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + as.factor(rta_type) |
@@ -214,6 +240,7 @@ summary(rta_poisson_types)
 ```
 
 
+
 ## 3. Allowing for trade diversion from domestic sales (includes FE for intra-trade)
 ```{r}
 ## PPML estimation
@@ -224,6 +251,8 @@ vcov = cluster ~ pair_id)
 
 summary(rta_poisson_intra)
 ```
+
+
 
 ## 4. Addressing potential endogeneity of RTAs
 ```{r}
@@ -241,15 +270,58 @@ arrange(iso3_o,iso3_d,year),3)
 summary(rta_endo)
 ```
 
-## 5. Testing for potential reverse causality between trade and RTAs
+
+
+
+# Robustness Checks 
+
+## 1. Testing for potential reverse causality between trade and RTAs
 ```{r}
-## Identify future RTAs
+## Identify future RTAs with custom function
 asean_selected_tradit = asean_selected_tradit %>%
   group_by(iso3_o,iso3_d) %>%
-  mutate(rta_lead4 = tlead(rta,n=4,along_with = year))
-
-#GAELLE: Idk why but there is a problem in the formula here
+  mutate(rta_lead3 = tlead(rta,n=3,along_with = year))
 ```
+
+```{r}
+## Estimation
+rta_lead = fepois(tradeflow_comtrade_d ~  rta + rta_lead3 |
+                    fe_exp_year + fe_imp_year + pair_id,
+                  data = asean_selected_tradit, 
+                  vcov = cluster ~ pair_id)
+
+summary(rta_lead)
+#rta should be significant, but rta_lead3 NOT - this way we will correctly control for reverse causality
+```
+
+
+## 2. Allowing for potential non-linear and phasing-in effects
+
+```{r}
+## Identify past RTAs to see how stronger effects get over time
+asean_selected_tradit = asean_selected_tradit %>%
+  group_by(iso3_o, iso3_d) %>%
+  mutate(rta_lag3 = tlag(rta,n=3,along_with = year),
+         rta_lag6 = tlag(rta,n=6,along_with = year),
+         rta_lag9 = tlag(rta,n=9,along_with = year))
+```
+
+```{r}
+rta_lags = fepois(tradeflow_comtrade_d ~  rta + rta_lag3 + rta_lag6 + rta_lag9 |
+                    fe_exp_year + fe_imp_year + pair_id,
+                  data = asean_selected_tradit, 
+                  vcov = cluster ~ pair_id)
+
+summary(rta_lags)
+#all coeffs of rta should be significant
+```
+
+
+
+
+## 3. Addressing globalization effects
+
+
 
 
 
