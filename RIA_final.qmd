@@ -244,32 +244,10 @@ summary(rta_endo)
 ## 5. Testing for potential reverse causality between trade and RTAs
 ```{r}
 ## Identify future RTAs
-asean_selected_tradit = asean_selected_tradit %>%
-  group_by(iso3_o,iso3_d) %>%
-  mutate(rta_lead4 = tlead(rta,n=4,along_with = year))
 
 #GAELLE: Idk why but there is a problem in the formula here
 ```
 
 
 
-
-
-
-TRIALS (NOT MAIN CODE)
-
-```{r}
-class(data_asean_selected$rta_type)
-table(data_asean_selected$rta)
-```
-
-```{r}
-table(data_asean_selected$country_id_d, data_asean_selected$country_exists_d)
-data_asean_selected %>% filter(iso3_d =="SGP")
-```
-
-```{r}
-sum(is.na(asean_selected_tradit$Y_it))
-colSums(is.na(asean_selected_tradit))
-```
 
