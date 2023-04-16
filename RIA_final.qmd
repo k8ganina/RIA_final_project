@@ -184,7 +184,7 @@ asean_selected_tradit = asean_selected_tradit %>%
      relocate(c(fe_exp_year,fe_imp_year), .after = 5)#in order to make it clear in the table
 
 ## Estimation 
-fit_fixedeffects = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig|
+fit_fixedeffects = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both |
                            fe_exp_year + fe_imp_year,
                          data = asean_selected_tradit %>% filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
                          vcov = cluster ~ pair_id)
@@ -361,8 +361,8 @@ table_rta
 
 #adjust variables rta and rta_type by setting them to 0 if rta_asean_plus=1, so we don't duplicate when use both all RTA for RoW and specific Japan-ASEAN RTA in the regression
 asean_selected_rta <- asean_selected_rta %>%
-  mutate(rta_excl_asean_plus = if_else(rta_asean_plus==1, 0, as.numeric(rta)),
-         rta_type_excl_asean_plus = if_else(rta_asean_plus==1, 0, as.numeric(rta_type)))
+  mutate(rta_excl_asean_plus = if_else(rta_asean_plus==1, 0, as.numeric(rta)),#general counterfactual
+         rta_type_excl_asean_plus = if_else(rta_asean_plus==1, 0, as.numeric(rta_type))) #specific counterfactual
 
 #based on adjusted rta_type segregate agreements of Japan in different types of RTA if Japan is in origin or destination
 asean_selected_rta <- asean_selected_rta %>%
@@ -555,5 +555,19 @@ asean_selected_tradit %>% filter(wto_o == 1)
 ```{r}
 sum(is.na(asean_selected_tradit$Y_it))
 colSums(is.na(asean_selected_tradit))
+```
+
+# Descriptive statistics
+Full Sample
+```{r}
+dim(data_asean_selected)[1] #number of observations
+table(data_asean_selected$rta)[2] #number of observations for RTA
+
+```
+
+Sample with 3 year intervals
+```{r}
+dim(asean_selected_rta)[1] #number of observations
+table(asean_selected_rta$rta)[2] #number of observations for RTA
 ```
 
