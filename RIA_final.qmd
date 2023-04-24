@@ -14,6 +14,7 @@ library(fixest) # perform estimations with multiple fixed-effects
 library(stargazer)
 library(flextable)
 library(huxtable)
+library(modelsummary)
 ```
 
 # Custom formulas
@@ -749,6 +750,24 @@ rta_poisson_intra_all = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + co
 summary(rta_poisson_intra_all)
 ```
 
+```{r}
+fig_rta_types <- modelplot(rta_poisson_intra_all, coef_map = c("rta_asean_plus_a_j" = "RTA ASEAN --> Japan",
+                                              "rta_asean_plus_j_a" = "RTA Japan --> ASEAN",
+                                              "jpn_fta_eia" = "Japan in FTA & EIA",
+                                              "as.factor(rta_type_all_clean)1" = "CU in RoW",
+                                              "as.factor(rta_type_all_clean)2" = "CU & EIA in RoW",
+                                              "as.factor(rta_type_all_clean)3" = "EIA in RoW",
+                                              "as.factor(rta_type_all_clean)4" = "FTA in RoW",
+                                              "as.factor(rta_type_all_clean)5" = "FTA & EIA in RoW",
+                                              "as.factor(rta_type_all_clean)7" = "PSA & EIA in RoW")) +
+  labs(x = "Gravity estimates", y = "Types of RTAs", title = "RTA Estimates by Type of Agreement") +
+   aes(color = if_else(p.value < 0.05, "Significant", "Not significant")) +
+  scale_color_manual(values = c("grey", "black")) +
+  geom_vline(xintercept = 0, color = 'orange')
+
+#caption = "All coefficients are estimated with PPML including intra-trade as in specification (4) after replacing the vector of RTA with different RTA types and specifying direction of exports for ASEAN+1 RTA"
+```
+
 
 ## 4.6. Addressing potential endogeneity of RTAs 
 
@@ -828,9 +847,65 @@ table_asean_steps
 
 
 #--------------------
-# 5. RTA Robustness Checks (not ASEAN specific)
+# 5. RTA Robustness Checks (ASEAN specific)
 
 ## 5.1. Testing for potential reverse causality between trade and RTAs
+```{r}
+## Identify future RTAs with custom function
+asean_selected_rta = asean_selected_rta %>%
+  group_by(iso3_o,iso3_d) %>%
+  mutate(rta_excl_asean_plus_lead3 = tlead(rta_excl_asean_plus,n=3,along_with = year),
+         rta_asean_plus_lead3 = tlead(rta_asean_plus, n=3, along_with = year))
+```
+
+```{r}
+## Estimation
+rta_lead_asean = feols(ln_tradeflow_comtrade_d ~  rta_excl_asean_plus + rta_excl_asean_plus_lead3 + rta_asean_plus + rta_asean_plus_lead3 |
+                  fe_exp_year + fe_imp_year + pair_id,
+                  data = asean_selected_rta, 
+                  vcov = cluster ~ pair_id)
+
+summary(rta_lead_asean)
+#rta should be significant, but rta_lead3 NOT - this way we will correctly control for reverse causality
+
+#is we estimate endogeneity with OLS, then it's ~okay here, cause RTA for RoW is signif, but RTA_lead3 not. But ASEAN RTA is problem...
+```
+
+## 5.2. Allowing for potential non-linear and phasing-in effects
+
+```{r}
+## Identify past RTAs to see how stronger effects get over time
+asean_selected_rta = asean_selected_rta %>%
+  group_by(iso3_o, iso3_d) %>%
+  mutate(rta_excl_asean_plus_lag3 = tlag(rta_excl_asean_plus,n=3,along_with = year),
+         rta_excl_asean_plus_lag6 = tlag(rta_excl_asean_plus,n=6,along_with = year),
+         rta_excl_asean_plus_lag9 = tlag(rta_excl_asean_plus,n=9,along_with = year),
+         rta_asean_plus_lag3 = tlag(rta_asean_plus,n=3,along_with = year),
+         rta_asean_plus_lag6 = tlag(rta_asean_plus,n=6,along_with = year),
+         rta_asean_plus_lag9 = tlag(rta_asean_plus,n=9,along_with = year))
+```
+
+```{r}
+rta_lags_asean = feols(ln_tradeflow_comtrade_d ~  rta_asean_plus + rta_asean_plus_lag3 + rta_asean_plus_lag6 + rta_asean_plus_lag9 + rta_excl_asean_plus + rta_excl_asean_plus_lag3 + rta_excl_asean_plus_lag6 + rta_excl_asean_plus_lag9 |
+                    fe_exp_year + fe_imp_year + pair_id,
+                  data = asean_selected_rta, 
+                  vcov = cluster ~ pair_id)
+
+summary(rta_lags_asean)
+#all coeffs of rta should be significant
+
+#in our case even with OLS nothing from ASEAN is significant. And for RoW lags are signif, but original no...
+```
+
+
+## 5.3. Addressing globalization effects
+
+
+
+
+# 6. RTA Robustness Checks (not ASEAN specific)
+
+## 6.1. Testing for potential reverse causality between trade and RTAs
 ```{r}
 ## Identify future RTAs with custom function
 asean_selected_rta = asean_selected_rta %>%
@@ -850,7 +925,7 @@ summary(rta_lead)
 ```
 
 
-## 5.2. Allowing for potential non-linear and phasing-in effects
+## 6.2. Allowing for potential non-linear and phasing-in effects
 
 ```{r}
 ## Identify past RTAs to see how stronger effects get over time
@@ -872,32 +947,12 @@ summary(rta_lags)
 ```
 
 
-## 5.3. Addressing globalization effects
+## 6.3. Addressing globalization effects
 
 
 
 
-# 5. RTA Robustness Checks (ASEAN specific)
 
-## 5.1. Testing for potential reverse causality between trade and RTAs
-```{r}
-## Identify future RTAs with custom function
-asean_selected_rta = asean_selected_rta %>%
-  group_by(iso3_o,iso3_d) %>%
-  mutate(rta_excl_asean_plus_lead3 = tlead(rta_excl_asean_plus,n=3,along_with = year),
-         rta_asean_plus_lead3 = tlead(rta_asean_plus, n=3, along_with = year))
-```
-
-```{r}
-## Estimation
-rta_lead_asean = fepois(tradeflow_comtrade_d ~  rta_excl_asean_plus + rta_excl_asean_plus_lead3 + rta_asean_plus + rta_asean_plus_lead3 |
-                    fe_exp_year + fe_imp_year + pair_id,
-                  data = asean_selected_rta, 
-                  vcov = cluster ~ pair_id)
-
-summary(rta_lead_asean)
-#rta should be significant, but rta_lead3 NOT - this way we will correctly control for reverse causality
-```
 
 
 
