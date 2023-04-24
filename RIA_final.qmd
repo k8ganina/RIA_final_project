@@ -83,11 +83,13 @@ data_asean_selected <- data_asean_selected %>%
 
 ```{r}
 #create tech columns for 10 ASEAN member states by origin and destination
-#and manually assign dummy 1 for ASEAN+1 agreement with Japan since 2008
+#and manually assign dummy 1 for ASEAN+1 agreement with Japan since 2008 (both general and directional for heterogeneity)
 data_asean_selected <- data_asean_selected %>%
   mutate(asean_ms_o = case_when(iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM") ~ 1, TRUE ~ 0),
          asean_ms_d = case_when(iso3_d %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM") ~ 1, TRUE ~ 0),
-         rta_asean_plus = case_when((year>=2008 & asean_ms_o==1 & iso3_d=="JPN") | (year>=2008 & iso3_o=="JPN" & asean_ms_d==1) ~ 1, TRUE ~ 0))
+         rta_asean_plus = case_when((year>=2008 & asean_ms_o==1 & iso3_d=="JPN") | (year>=2008 & iso3_o=="JPN" & asean_ms_d==1) ~ 1, TRUE ~ 0),
+         rta_asean_plus_a_j = case_when((year>=2008 & asean_ms_o==1 & iso3_d=="JPN" ~ 1), TRUE ~ 0),
+         rta_asean_plus_j_a = case_when((year>=2008 & iso3_o=="JPN" & asean_ms_d==1 ~ 1), TRUE ~ 0))
 ```
 
 # 1. Traditional Gravity Estimates
@@ -710,10 +712,41 @@ mutate(D_trade_ii = ifelse(iso3_o==iso3_d,iso3_o,"international"))
 ```{r}
 rta_poisson_intra = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both + rta_excl_asean_plus + rta_asean_plus |
                            fe_exp_year + fe_imp_year + D_trade_ii,
-data = asean_selected_rta,
-vcov = cluster ~ pair_id)
+                           data = asean_selected_rta,
+                           vcov = cluster ~ pair_id)
 
 summary(rta_poisson_intra)
+```
+### Heterogeneity - PPML Estimation
+```{r}
+#with directions: Japan to ASEAN, ASEAN to Japan
+rta_poisson_intra_dir = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both + rta_excl_asean_plus + rta_asean_plus_a_j + rta_asean_plus_j_a |
+                           fe_exp_year + fe_imp_year + D_trade_ii,
+                           data = asean_selected_rta,
+                           vcov = cluster ~ pair_id)
+
+summary(rta_poisson_intra_dir)
+```
+
+
+```{r}
+#with Japan in other RTAs
+rta_poisson_intra_jpntypes = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both + rta_asean_plus + jpn_cu + jpn_cu_eia + jpn_eia + jpn_fta + jpn_fta_eia + jpn_psa_eia + as.factor(rta_type_all_clean) |
+                           fe_exp_year + fe_imp_year + D_trade_ii,
+                           data = asean_selected_rta,
+                           vcov = cluster ~ pair_id)
+
+summary(rta_poisson_intra_jpntypes)
+```
+
+```{r}
+#with everything
+rta_poisson_intra_all = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both + rta_asean_plus_a_j + rta_asean_plus_j_a + jpn_cu + jpn_cu_eia + jpn_eia + jpn_fta + jpn_fta_eia + jpn_psa_eia + as.factor(rta_type_all_clean) |
+                           fe_exp_year + fe_imp_year + D_trade_ii,
+                           data = asean_selected_rta,
+                           vcov = cluster ~ pair_id)
+
+summary(rta_poisson_intra_all)
 ```
 
 
@@ -738,7 +771,7 @@ rta_ols_endo = feols(ln_tradeflow_comtrade_d ~ gatt_wto_both + rta_excl_asean_pl
                         vcov = cluster ~ pair_id)
 
 summary(rta_ols_endo)
-#rta coeff should be significant, why it's NOT???
+#RTA for ASEAN not signifficant, only significant for RoW
 ```
 
 
