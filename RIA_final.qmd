@@ -44,7 +44,7 @@ tlead <- function(x, n = 1L, along_with, default = NA) {
 # Data
 
 ```{r}
-data_asean_raw <- read.csv("./Gravity_csv_V202211/Gravity_V202211.csv")
+#data_asean_raw <- read.csv("./Gravity_csv_V202211/Gravity_V202211.csv")
 ```
 
 ## General modifications
@@ -243,6 +243,7 @@ table_tradit
 ```
 ```{r}
 width(table_tradit) = 1 #Set relative table width for use in documents
+
 ## Export table to word
 table_tradit_docx = as_flextable(table_tradit)
 save_as_docx(table_tradit_docx, path = "table_tradit.docx")
