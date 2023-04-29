@@ -22,6 +22,36 @@ library(huxtable)
 data_asean_raw <- read.csv("./Gravity_csv_V202211/Gravity_V202211.csv")
 ```
 
+## Descriptive analysis
+
+```{r}
+#Code for 2000
+ data_asean_description <- data_asean_raw %>%
+     select(year, iso3_o, iso3_d, tradeflow_comtrade_d) %>%
+     filter(year == 2000 & iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM","JPN") & iso3_d %in% c("BRN","KHM","IDN","LAO","MYS","MMR","PHL","SGP","THA","VNM","JPN"))
+
+plot_2000 <- ggplot(data_asean_description, aes(x = iso3_o, y = tradeflow_comtrade_d, fill = iso3_o)) +
+     geom_bar(stat = "identity") +
+     labs(title = "Trade Levels reported by the destination country for 10 ASEAN members countries in 2000",
+          x = "Country", y = "Trade Level")
+
+plot_2000
+
+#Code for 2012
+data_asean_description <- data_asean_raw %>%
+     select(year, iso3_o, iso3_d, tradeflow_comtrade_d) %>%
+     filter(year == 2012 & iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM","JPN") & iso3_d %in% c("BRN","KHM","IDN","LAO","MYS","MMR","PHL","SGP","THA","VNM","JPN"))
+
+
+plot_2012<- ggplot(data_asean_description, aes(x = iso3_o, y = tradeflow_comtrade_d, fill = iso3_o)) +
+     geom_bar(stat = "identity") +
+     labs(title = "Trade Levels reported by the destination country for 10 ASEAN members countries in 2012",
+          x = "Country", y = "Trade Level")
+
+grid.arrange(plot_2000, plot_2012, ncol = 2)
+```
+
+
 ## General modifications
 
 ```{r}
