@@ -122,7 +122,7 @@ asean_selected_rta <- asean_selected_rta %>%
 
 # Descriptive analysis
 
-We will analyse briefly the situation of Japan in terms of trade and of GDP. For this, we will focus on Japan only and on all ACJEP members. We will also compare the situation of Japan between two years: 2000 when the negotiations of ASEAN+1 did not start yet and 2012, four years after the implementation of AJCEP.
+We will analyse briefly the situation of Japan in terms of trade and of GDP. For this, we will focus firstly on Japan only and secondly on all ACJEP members. We will also compare the situation of Japan between two years: 2000 when the negotiations of ASEAN+1 did not start yet and 2012, four years after the implementation of AJCEP.
 
 ## 1. Japan's trade level
 
@@ -261,8 +261,6 @@ ggplot(total_imports_ajcep, aes(x = year)) +
 
 ### 2.3. Exports
 
-### 2.2. Imports
-
 ```{r}
 # We now create a dataset 'total_imports_ajcep' where we have the total amount of imports for each country by year.
 
@@ -308,9 +306,63 @@ ggplot(total_exports_ajcep, aes(x = year)) +
 ## 3. Japan-ASEAN trade
 
 We want to focus on the trade between Japan and ASEAN only and not on the trade with the RoW anymore.
+  (1) Japan's exports to ASEAN (= ASEAN's imports from Japan)
+  (2) Japan's imports from ASEAN (= ASEAN's exports to Japan)
 
 ```{r}
+# We create a new dataset 'trade_japan_asean' where we can see the trade within AJCEP countries.
 
+trade_japan_asean <- asean_selected_rta %>%
+  select(year, pair, iso3_o, iso3_d, tradeflow_comtrade_d) %>%
+  filter(iso3_d %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM","JPN") & iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM","JPN")) %>%
+  filter(year != 2021)
+```
+
+
+```{r}
+# We firstly focus on Japan's total exports to each ASEAN countries in 2000 and 2012.
+
+japan_exports <- trade_japan_asean %>%
+  filter(iso3_o == "JPN") %>%
+  filter(year %in% c(2000, 2012) & iso3_d != "JPN") %>%
+  group_by(year, iso3_d) %>%
+  summarize(total_exports = sum(tradeflow_comtrade_d)) %>%
+  pivot_wider(names_from = iso3_d, values_from = total_exports)
+
+japan_exports
+```
+
+```{r}
+# We can now focus on Japan's total imports from each ASEAN countries in 2000 and 2012.
+
+japan_imports <- trade_japan_asean %>%
+  filter(iso3_d == "JPN") %>%
+  filter(year %in% c(2000, 2012) & iso3_o != "JPN") %>%
+  group_by(year, iso3_o) %>%
+  summarize(total_imports = sum(tradeflow_comtrade_d)) %>%
+  pivot_wider(names_from = iso3_o, values_from = total_imports)
+
+japan_imports
+```
+
+Countries (11): Brunei (BRN), Cambodia (KHM), Indonesia (IDN), Laos (LAO), Malaysia (MYS), Myanmar (MMR), Philippines (PHL), Singapore (SGP), Thailand (THA), Vietnam (VNM), Japan (JPN).
+
+```{r}
+# We create a table with Japan's total levels of imports and exports from and to each ASEAN country both in 2000 and 2012.
+
+as_hux(japan_exports) %>%
+  set_caption("Japan level of export to each ASEAN country in 2000 and 2012") %>%
+  set_align(everywhere,-1,"center") %>%
+  set_top_border(2, everywhere) %>%
+  set_right_border(everywhere, 1) %>%
+  set_bottom_border(3, everywhere)
+
+as_hux(japan_imports) %>%
+  set_caption("Japan level of import from each ASEAN country in 2000 and 2012") %>%
+  set_align(everywhere,-1,"center") %>%
+  set_top_border(2, everywhere) %>%
+  set_right_border(everywhere, 1) %>%
+  set_bottom_border(3, everywhere) %>%
 ```
 
 
@@ -344,3 +396,12 @@ plot_2012<- ggplot(data_asean_description, aes(x = iso3_o, y = tradeflow_comtrad
 
 grid.arrange(plot_2000, plot_2012, ncol = 2)
 ```
+
+# Notes
+
+(1) Put 2008 on the same line as the other years, below the plot.
+(2) Review format of tables in Japan exports and imports to and from ASEAN countries.
+(3) Graph with main trading partners.
+(4) Search who are the 5 main trading partners of Japan in the world (including ASEAN) in 2000 and 2012.
+
+
