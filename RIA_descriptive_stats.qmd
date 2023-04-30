@@ -112,3 +112,13 @@ asean_selected_rta <- asean_selected_rta %>%
 asean_selected_rta <- asean_selected_rta %>%
   mutate(rta_type_all_clean = if_else((jpn_cu==1) | (jpn_cu_eia==1) | (jpn_eia==1) | (jpn_fta==1) | (jpn_fta_eia==1) | (jpn_psa_eia==1), 0, as.numeric(rta_type_excl_asean_plus)))
 ```
+
+# Descriptive analysis
+
+We will compare the situation of Japan between two years: 2000 when the negotiations of ASEAN+1 did not start yet and 2012, four years after the implementation of AJCEP.
+
+```{r}
+#Level of trade of Japan before and after AJCEP
+
+```
+
