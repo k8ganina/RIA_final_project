@@ -345,7 +345,6 @@ japan_imports <- trade_japan_asean %>%
 japan_imports
 ```
 
-Countries (11): Brunei (BRN), Cambodia (KHM), Indonesia (IDN), Laos (LAO), Malaysia (MYS), Myanmar (MMR), Philippines (PHL), Singapore (SGP), Thailand (THA), Vietnam (VNM), Japan (JPN).
 
 ```{r}
 # We create a table with Japan's total levels of imports and exports from and to each ASEAN country both in 2000 and 2012.
@@ -362,8 +361,71 @@ as_hux(japan_imports) %>%
   set_align(everywhere,-1,"center") %>%
   set_top_border(2, everywhere) %>%
   set_right_border(everywhere, 1) %>%
-  set_bottom_border(3, everywhere) %>%
+  set_bottom_border(3, everywhere)
 ```
+
+## 4. Japan's world trade partners
+
+```{r}
+# Dataset with the trade of Japan with all the world.
+
+trade_japan_world <- subset(asean_selected_rta, iso3_d=="JPN" | iso3_o=="JPN") %>%
+  filter(year != 2021) %>%
+  group_by(year) %>%
+  select(year, pair, iso3_d, iso3_o, tradeflow_comtrade_d)
+```
+
+
+```{r}
+# Imports of Japan from all the world.
+
+imports_japan_world <- subset(trade_japan_world, iso3_d=="JPN") %>%
+  filter(year %in% c(2000, 2012) & iso3_o != "JPN") %>%
+  group_by(year, iso3_o)
+
+# Top 5 imports partners of Japan in 2000
+
+top_imports_2000_sum <- imports_japan_world %>%
+  filter(year == 2000) %>%
+  group_by(iso3_o) %>%
+  summarize(total_imports = sum(tradeflow_comtrade_d)) %>%
+  top_n(5, total_imports) %>%
+  arrange(desc(total_imports))
+
+# Plot the graph for 2000
+ggplot(top_imports_2000_sum, aes(x = "", y = total_imports, fill = iso3_o)) + 
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Five main exporters to Japan in 2000", fill = "Country", x = NULL, y = NULL) +
+  theme_void() +
+  theme(legend.position = "left")
+
+
+# Top 5 import partners of Japan in 2012
+
+top_imports_2012_sum <- imports_japan_world %>%
+  filter(year == 2012) %>%
+  group_by(iso3_o) %>%
+  summarize(total_imports = sum(tradeflow_comtrade_d)) %>%
+  top_n(5, total_imports) %>%
+  arrange(desc(total_imports))
+
+# Plot the graph for 2012
+ggplot(top_imports_2012_sum, aes(x = "", y = total_imports, fill = iso3_o)) + 
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Five main exporters to Japan in 2012", fill = "Country", x = NULL, y = NULL) +
+  theme_void() +
+  theme(legend.position = "left")
+```
+
+
+```{r}
+exports_japan_world <- subset(trade_japan_world, iso3_o=="JPN") %>%
+  filter(year %in% c(2000, 2012) & iso3_d != "JPN") %>%
+  group_by(year, iso3_d)
+```
+
 
 
 
@@ -402,6 +464,6 @@ grid.arrange(plot_2000, plot_2012, ncol = 2)
 (1) Put 2008 on the same line as the other years, below the plot.
 (2) Review format of tables in Japan exports and imports to and from ASEAN countries.
 (3) Graph with main trading partners.
-(4) Search who are the 5 main trading partners of Japan in the world (including ASEAN) in 2000 and 2012.
+(4) Search who are the 5 main trading partners of Japan in the world (including ASEAN) in 2000 and 2012. (How much they represent of all exports of Japan?)
 
 
