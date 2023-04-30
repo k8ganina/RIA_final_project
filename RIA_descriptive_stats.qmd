@@ -79,6 +79,8 @@ data_asean_selected <- data_asean_selected %>%
 ```{r}
 # We construct symmetric pair id's for exporter and importer.
 
+asean_selected_rta <- data_asean_selected
+
 asean_selected_rta <- asean_selected_rta %>%
   mutate(pair = paste(pmin(iso3_o,iso3_d),pmax(iso3_o,iso3_d),sep = "_")) %>%
   group_by(pair) %>%
@@ -122,6 +124,46 @@ asean_selected_rta <- asean_selected_rta %>%
 We will analyse briefly the situation of Japan in terms of trade and of GDP. For this, we will focus on Japan only and on all ACJEP members. We will also compare the situation of Japan between two years: 2000 when the negotiations of ASEAN+1 did not start yet and 2012, four years after the implementation of AJCEP.
 
 ## 1. Japan's trade level
+
+### 1.1. Global trade level
+
+```{r}
+# We create a new dataset 'trade_japan' with three columns: 1. Total amount of trade (imports and exports) 'total_trade' by year; 2. Total amount of imports 'total_imports' per year; 3. Total amount of exports 'total_exports' by year. We remove 2021 since there are no trade flows for this year.
+
+# We first want to plot the total amount of trade flows considering imports and exports.
+
+trade_japan <- subset(asean_selected_rta, iso3_d=="JPN" | iso3_o=="JPN") %>%
+  filter(year != 2021) %>%
+  group_by(year) %>%
+  summarise(total_trade = sum(tradeflow_comtrade_d),
+            total_imports = sum(tradeflow_comtrade_d[iso3_d == "JPN"]),
+            total_exports = sum(tradeflow_comtrade_d[iso3_o == "JPN"]))
+
+ggplot(trade_japan, aes(x = year, y = total_trade/1000000)) +
+  geom_line() +
+  geom_vline(xintercept = 2008, linetype = "solid", color = "red") +
+  annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
+  labs(title = "Figure 1: Evolution of Japan's total level of trade (imports and exports) \nfrom 1965 to 2020", x = "Year", y = "Total trade (in million)") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks = seq(1965, 2020, 10), limits = c(1965, 2020))
+```
+### 1.2. Imports and exports
+
+```{r}
+# We now plot a graph with both total imports and total exports of Japan to see their evolution between 1965 and 2008.
+
+ggplot() +
+  geom_line(data=trade_japan, aes(x = year, y = total_imports/1000000, color="Imports")) +
+  geom_line(data=trade_japan, aes(x = year, y = total_exports/1000000, color="Exports")) +
+  geom_vline(xintercept = 2008, linetype = "solid", color = "red") +
+  annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
+  labs(title = "Figure 2: Evolution of Japan's levels of imports and exports \nfrom 1965 to 2020", x = "Year", y = "Total amount of imports and exports \n(in million)") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks = seq(1965, 2020, 10), limits = c(1965, 2020)) +
+  scale_color_manual(name = "Legend", values = c("Imports" = "blue", "Exports" = "orange"))
+```
 
 
 ## 2. ACJEP's member states trade level
