@@ -6,7 +6,7 @@ format: html
 
 Countries (11): Brunei (BRN), Cambodia (KHM), Indonesia (IDN), Laos (LAO), Malaysia (MYS), Myanmar (MMR), Philippines (PHL), Singapore (SGP), Thailand (THA), Vietnam (VNM), Japan (JPN).
 
-# General
+# Library
 
 ```{r}
 library(tidyverse)
@@ -22,7 +22,151 @@ library(huxtable)
 data_asean_raw <- read.csv("./Gravity_csv_V202211/Gravity_V202211.csv")
 ```
 
-## Descriptive analysis
+# General modifications
+
+## Data cleaning
+
+```{r}
+# Selection of the countries and columns that we need. We remove non-existing countries after they started existing in a different form: Singapore for example that became independent in 1965. We also remove all the technical variables we are not interested in.
+
+data_asean_selected <- data_asean_raw %>%
+  select(c(year, country_id_o, country_id_d, iso3_o, iso3_d, country_exists_o, country_exists_d, dist, comlang_off, comlang_ethno, comcol, col45, comleg_pretrans, comleg_posttrans, comrelig, col_dep_end_conflict, gdp_o, gdp_d, gatt_o, gatt_d, wto_o, wto_d, rta_type, tradeflow_comtrade_d)) %>%
+  filter(year >= 1965 & country_exists_o == 1 & country_exists_d == 1) %>%
+  select(-c(country_id_o, country_id_d, country_exists_o, country_exists_d))
+```
+
+```{r}
+# We set 'rta_type' and we set the trade flows to 0 if NA.
+
+data_asean_selected <- data_asean_selected %>%
+  mutate(rta_type = coalesce(rta_type, 0),
+         tradeflow_comtrade_d = coalesce(tradeflow_comtrade_d, 0))
+```
+
+```{r}
+# We create new columns for: 1. General presence in GATT or WTO by origin and destination (dummy); 2. Presence of both countries in GATT or WTO; 3. General presence of any RTA for all the countries (dummy).
+
+data_asean_selected <- data_asean_selected %>%
+  mutate(gatt_wto_o = case_when((gatt_o == 1 | wto_o == 1) ~ 1, TRUE ~ 0),
+         gatt_wto_d = case_when((gatt_d == 1 | wto_d == 1) ~ 1, TRUE ~ 0),
+         rta = if_else(rta_type == 0, 0, 1),
+         .after = wto_d) %>%
+  mutate(gatt_wto_both = if_else((gatt_wto_o == 1 & gatt_wto_d == 1), 1, 0))
+```
+
+## ASEAN specification
+
+```{r}
+# We create new technical columns: 1. 10 ASEAN member states by origin 'asean_ms_o' and destination 'asean_ms_d' (dummies); 2. General membership of AJCEP agreement between ASEAN and Japan 'rta_asean_plus' (dummy); 3. Directional membership of AJCEP agreement when Japan is importer 'rta_asean_plus_a_j' and when Japan is exporter 'rta_asean_plus_j_a' (dummies).
+
+data_asean_selected <- data_asean_selected %>%
+  mutate(asean_ms_o = case_when(iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM") ~ 1, TRUE ~ 0),
+         asean_ms_d = case_when(iso3_d %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM") ~ 1, TRUE ~ 0),
+         rta_asean_plus = case_when((year>=2008 & asean_ms_o==1 & iso3_d=="JPN") | (year>=2008 & iso3_o=="JPN" & asean_ms_d==1) ~ 1, TRUE ~ 0),
+         rta_asean_plus_a_j = case_when((year>=2008 & asean_ms_o==1 & iso3_d=="JPN" ~ 1), TRUE ~ 0),
+         rta_asean_plus_j_a = case_when((year>=2008 & iso3_o=="JPN" & asean_ms_d==1 ~ 1), TRUE ~ 0))
+```
+
+## ACJEP specifications (general, section 4.1)
+
+```{r}
+## We setup our data by 3 years intervals. (I remove it here because I don't think that it will be necessary for the descriptive analysis)
+
+#asean_selected_rta <- data_asean_selected %>%
+ # filter(year %in% seq(1965, 2020, 3))
+```
+
+```{r}
+# We construct symmetric pair id's for exporter and importer.
+
+asean_selected_rta <- data_asean_selected
+
+asean_selected_rta <- asean_selected_rta %>%
+  mutate(pair = paste(pmin(iso3_o,iso3_d),pmax(iso3_o,iso3_d),sep = "_")) %>%
+  group_by(pair) %>%
+  mutate(pair_id = cur_group_id())
+```
+
+```{r}
+# We calculate logs of trade flows, distance, GDP of importer and GDP of exporter.
+
+asean_selected_rta <- asean_selected_rta %>%
+  mutate(across(c(tradeflow_comtrade_d, dist, gdp_o, gdp_d), ~log(.x), .names="ln_{.col}"))
+```
+
+```{r}
+# We create different columns to separate our ASEAN dummy from the general 'rta' and 'rta_type': it needs to be set to 0 if the ASEAN dummy for Japan is equal to 1.
+
+# (1) We create two counterfactuals: 1. General counterfactual 'rta_excl_asean_plus': if the ACJEP members have an RTA agreement, it is set 0 set, otherwise it will be set to the value of the 'rta' column; 2. Specific counterfactual 'rta_type_excl_asean_plus': if the AJCEP members have an RTA agreement, it is set to 0, otherwise, it will take the value of 'rta_type" column.Therefore, we do not duplicate the data when we use both all RTA for the RoW and for the specific ACJEP RTA in the regression.
+
+asean_selected_rta <- asean_selected_rta %>%
+  mutate(rta_excl_asean_plus = if_else(rta_asean_plus==1, 0, as.numeric(rta)),#General counterfactual
+         rta_type_excl_asean_plus = if_else(rta_asean_plus==1, 0, as.numeric(rta_type))) #Specific counterfactual
+
+# (2) We set new columns for each type of RTA agreement that Japan has (as origin or destination) with a country that does not take part of the ACJEP agreement at the moment (dummies).
+
+asean_selected_rta <- asean_selected_rta %>%
+  mutate(jpn_cu = if_else((rta_type_excl_asean_plus==1 & iso3_o=="JPN") | (rta_type_excl_asean_plus==1 & iso3_d=="JPN"), 1, 0),
+         jpn_cu_eia = if_else((rta_type_excl_asean_plus==2 & iso3_o=="JPN") | (rta_type_excl_asean_plus==2 & iso3_d=="JPN"), 1, 0),
+         jpn_eia = if_else((rta_type_excl_asean_plus==3 & iso3_o=="JPN") | (rta_type_excl_asean_plus==3 & iso3_d=="JPN"), 1, 0),
+         jpn_fta = if_else((rta_type_excl_asean_plus==4 & iso3_o=="JPN") | (rta_type_excl_asean_plus==4 & iso3_d=="JPN"), 1, 0),
+         jpn_fta_eia = if_else((rta_type_excl_asean_plus==5 & iso3_o=="JPN") | (rta_type_excl_asean_plus==5 & iso3_d=="JPN"), 1, 0),
+         jpn_psa_eia = if_else((rta_type_excl_asean_plus==7 & iso3_o=="JPN") | (rta_type_excl_asean_plus==7 & iso3_d=="JPN"), 1, 0))
+
+# (3) We create a last column 'rta_type_all_clean' that takes the value of 0 if Japan takes part of the agreement. Otherwise, it keeps the value of 'rta_type_excl_asean_plus'. This way we will not duplicate them in the regression when we use the variables specifically for Japan and for the RoW (namely, when we use in regression Japan-ASEAN, Japan in all types of RTAs with RoW, and all types of RTAs between other countries in RoW).
+
+asean_selected_rta <- asean_selected_rta %>%
+  mutate(rta_type_all_clean = if_else((jpn_cu==1) | (jpn_cu_eia==1) | (jpn_eia==1) | (jpn_fta==1) | (jpn_fta_eia==1) | (jpn_psa_eia==1), 0, as.numeric(rta_type_excl_asean_plus)))
+```
+
+# Descriptive analysis
+
+We will analyse briefly the situation of Japan in terms of trade and of GDP. For this, we will focus on Japan only and on all ACJEP members. We will also compare the situation of Japan between two years: 2000 when the negotiations of ASEAN+1 did not start yet and 2012, four years after the implementation of AJCEP.
+
+## 1. Japan's trade level
+
+### 1.1. Global trade level
+
+```{r}
+# We create a new dataset 'trade_japan' with three columns: 1. Total amount of trade (imports and exports) 'total_trade' by year; 2. Total amount of imports 'total_imports' per year; 3. Total amount of exports 'total_exports' by year. We remove 2021 since there are no trade flows for this year.
+
+# We first plot the total amount of trade flows considering imports and exports.
+
+trade_japan <- subset(asean_selected_rta, iso3_d=="JPN" | iso3_o=="JPN") %>%
+  filter(year != 2021) %>%
+  group_by(year) %>%
+  summarise(total_trade = sum(tradeflow_comtrade_d),
+            total_imports = sum(tradeflow_comtrade_d[iso3_d == "JPN"]),
+            total_exports = sum(tradeflow_comtrade_d[iso3_o == "JPN"]))
+
+ggplot(trade_japan, aes(x = year, y = total_trade/1000000)) +
+  geom_line() +
+  geom_vline(xintercept = 2008, linetype = "solid", color = "red") +
+  annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
+  labs(title = "Figure 1: Evolution of Japan's total level of trade (imports and exports) \nfrom 1965 to 2020", x = "Year", y = "Total trade (in million)") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks = seq(1965, 2020, 10), limits = c(1965, 2020))
+```
+### 1.2. Imports and exports
+
+```{r}
+# We now plot a graph with both total imports and total exports of Japan to see their evolution between 1965 and 2008.
+
+ggplot() +
+  geom_line(data=trade_japan, aes(x = year, y = total_imports/1000000, color="Imports")) +
+  geom_line(data=trade_japan, aes(x = year, y = total_exports/1000000, color="Exports")) +
+  geom_vline(xintercept = 2008, linetype = "solid", color = "red") +
+  annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
+  labs(title = "Figure 2: Evolution of Japan's levels of imports and exports \nfrom 1965 to 2020", x = "Year", y = "Total amount of imports and exports \n(in million)") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks = seq(1965, 2020, 10), limits = c(1965, 2020)) +
+  scale_color_manual(name = "Legend", values = c("Imports" = "blue", "Exports" = "orange"))
+```
+
+
+## 2. ACJEP's member states trade level
 
 ```{r}
 #Code for 2000
@@ -51,96 +195,4 @@ plot_2012<- ggplot(data_asean_description, aes(x = iso3_o, y = tradeflow_comtrad
           x = "Country", y = "Trade Level")
 
 grid.arrange(plot_2000, plot_2012, ncol = 2)
-```
-
-
-## General modifications
-
-```{r}
-#Select only countries and columns we need
-#remove non-existing countries after they started existing in different form (+Singapore independence since 1965)
-#remove tech variables
-data_asean_selected <- data_asean_raw %>%
-  select(c(year, country_id_o, country_id_d, iso3_o, iso3_d, country_exists_o, country_exists_d, dist, comlang_off, comlang_ethno, comcol, col45, comleg_pretrans, comleg_posttrans, comrelig, col_dep_end_conflict, gdp_o, gdp_d, gatt_o, gatt_d, wto_o, wto_d, rta_type, tradeflow_comtrade_d)) %>%
-  filter(year >= 1965 & country_exists_o == 1 & country_exists_d == 1) %>%
-  select(-c(country_id_o, country_id_d, country_exists_o, country_exists_d))
-```
-
-```{r}
-#set rta_type and trade flows to 0 if NA
-data_asean_selected <- data_asean_selected %>%
-  mutate(rta_type = coalesce(rta_type, 0),
-         tradeflow_comtrade_d = coalesce(tradeflow_comtrade_d, 0))
-```
-
-```{r}
-#create new columns:
-#general presence in either GATT or WTO by origin and destination
-#general dummy for presence of any RTA for all countries
-#dummy for presence in either GATT or WTO if both countries are members of it
-data_asean_selected <- data_asean_selected %>%
-  mutate(gatt_wto_o = case_when((gatt_o == 1 | wto_o == 1) ~ 1, TRUE ~ 0),
-         gatt_wto_d = case_when((gatt_d == 1 | wto_d == 1) ~ 1, TRUE ~ 0),
-         rta = if_else(rta_type == 0, 0, 1),
-         .after = wto_d) %>%
-  mutate(gatt_wto_both = if_else((gatt_wto_o == 1 & gatt_wto_d == 1), 1, 0))
-```
-
-## ASEAN specific modifications
-
-```{r}
-#create tech columns for 10 ASEAN member states by origin and destination
-#and manually assign dummy 1 for ASEAN+1 agreement with Japan since 2008 (both general and directional for heterogeneity)
-data_asean_selected <- data_asean_selected %>%
-  mutate(asean_ms_o = case_when(iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM") ~ 1, TRUE ~ 0),
-         asean_ms_d = case_when(iso3_d %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM") ~ 1, TRUE ~ 0),
-         rta_asean_plus = case_when((year>=2008 & asean_ms_o==1 & iso3_d=="JPN") | (year>=2008 & iso3_o=="JPN" & asean_ms_d==1) ~ 1, TRUE ~ 0),
-         rta_asean_plus_a_j = case_when((year>=2008 & asean_ms_o==1 & iso3_d=="JPN" ~ 1), TRUE ~ 0),
-         rta_asean_plus_j_a = case_when((year>=2008 & iso3_o=="JPN" & asean_ms_d==1 ~ 1), TRUE ~ 0))
-```
-
-
-## From section 4.1 with regressions
-```{r}
-# Select necessary years with 3 year intervals
-asean_selected_rta <- data_asean_selected %>%
-  filter(year %in% seq(1965, 2020, 3))
-```
-
-```{r}
-# Construct symmetric pair id's for exporter and importer
-asean_selected_rta <- asean_selected_rta %>%
-  mutate(pair = paste(pmin(iso3_o,iso3_d),pmax(iso3_o,iso3_d),sep = "_")) %>%
-  group_by(pair) %>%
-  mutate(pair_id = cur_group_id())
-```
-
-```{r}
-# calculate logs
-asean_selected_rta <- asean_selected_rta %>%
-  mutate(across(c(tradeflow_comtrade_d, dist, gdp_o, gdp_d), ~log(.x), .names="ln_{.col}"))
-```
-
-```{r}
-#---create different columns for separating ASEAN dummy from general rta and rta_type -- needs to be set to 0 if manually created ASEAN dummy for Japan=1:
-
-#adjust variables rta and rta_type by setting them to 0 if rta_asean_plus=1, so we don't duplicate when use both all RTA for RoW and specific Japan-ASEAN RTA in the regression
-asean_selected_rta <- asean_selected_rta %>%
-  mutate(rta_excl_asean_plus = if_else(rta_asean_plus==1, 0, as.numeric(rta)),#general counterfactual
-         rta_type_excl_asean_plus = if_else(rta_asean_plus==1, 0, as.numeric(rta_type))) #specific counterfactual
-
-#based on adjusted rta_type segregate agreements of Japan in different types of RTA if Japan is in origin or destination
-asean_selected_rta <- asean_selected_rta %>%
-  mutate(jpn_cu = if_else((rta_type_excl_asean_plus==1 & iso3_o=="JPN") | (rta_type_excl_asean_plus==1 & iso3_d=="JPN"), 1, 0),
-         jpn_cu_eia = if_else((rta_type_excl_asean_plus==2 & iso3_o=="JPN") | (rta_type_excl_asean_plus==2 & iso3_d=="JPN"), 1, 0),
-         jpn_eia = if_else((rta_type_excl_asean_plus==3 & iso3_o=="JPN") | (rta_type_excl_asean_plus==3 & iso3_d=="JPN"), 1, 0),
-         jpn_fta = if_else((rta_type_excl_asean_plus==4 & iso3_o=="JPN") | (rta_type_excl_asean_plus==4 & iso3_d=="JPN"), 1, 0),
-         jpn_fta_eia = if_else((rta_type_excl_asean_plus==5 & iso3_o=="JPN") | (rta_type_excl_asean_plus==5 & iso3_d=="JPN"), 1, 0),
-         jpn_psa_eia = if_else((rta_type_excl_asean_plus==7 & iso3_o=="JPN") | (rta_type_excl_asean_plus==7 & iso3_d=="JPN"), 1, 0))
-
-
-#again adjust rta_type by setting them to 0 if member of ANY type of agreement is Japan,
-#if not, then keep adjusted rta_type from the 1st step. This way we will not duplicate them in the regression when use variables specifically for Japan and for RoW (namely, when we use in regression Japan-ASEAN, Japan in all types of RTAs with RoW, and all types of RTAs between other countries in RoW)
-asean_selected_rta <- asean_selected_rta %>%
-  mutate(rta_type_all_clean = if_else((jpn_cu==1) | (jpn_cu_eia==1) | (jpn_eia==1) | (jpn_fta==1) | (jpn_fta_eia==1) | (jpn_psa_eia==1), 0, as.numeric(rta_type_excl_asean_plus)))
 ```
