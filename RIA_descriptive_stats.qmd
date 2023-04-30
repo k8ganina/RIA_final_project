@@ -14,6 +14,7 @@ library(fixest) # perform estimations with multiple fixed-effects
 library(stargazer)
 library(flextable)
 library(huxtable)
+library(RColorBrewer) # nice colors on the graph
 ```
 
 # Data
@@ -141,13 +142,14 @@ trade_japan <- subset(asean_selected_rta, iso3_d=="JPN" | iso3_o=="JPN") %>%
 
 ggplot(trade_japan, aes(x = year, y = total_trade/1000000)) +
   geom_line() +
-  geom_vline(xintercept = 2008, linetype = "solid", color = "red") +
+  geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
   annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
   labs(title = "Figure 1: Evolution of Japan's total level of trade (imports and exports) \nfrom 1965 to 2020", x = "Year", y = "Total trade (in million)") +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_x_continuous(breaks = seq(1965, 2020, 10), limits = c(1965, 2020))
 ```
+
 ### 1.2. Imports and exports
 
 ```{r}
@@ -156,7 +158,7 @@ ggplot(trade_japan, aes(x = year, y = total_trade/1000000)) +
 ggplot() +
   geom_line(data=trade_japan, aes(x = year, y = total_imports/1000000, color="Imports")) +
   geom_line(data=trade_japan, aes(x = year, y = total_exports/1000000, color="Exports")) +
-  geom_vline(xintercept = 2008, linetype = "solid", color = "red") +
+  geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
   annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
   labs(title = "Figure 2: Evolution of Japan's levels of imports and exports \nfrom 1965 to 2020", x = "Year", y = "Total amount of imports and exports \n(in million)") +
   theme_bw() +
@@ -165,8 +167,156 @@ ggplot() +
   scale_color_manual(name = "Legend", values = c("Imports" = "blue", "Exports" = "orange"))
 ```
 
+## 2. AJCEP's member states trade level
 
-## 2. ACJEP's member states trade level
+Here, we create three dataset: 1. Global trade level of each AJCEP member state (imports and exports) 'total_trade_acjep' per year; 2. Total imports of each AJCEP member state 'total_imports_ajcep' per year; 3. Total exports of each AJCEP member state 'total_exports_ajcep' per year.
+
+### 2.1. Global trade level
+
+```{r}
+# We create a new dataset 'total_trade_acjep' with reported in it the total amount of trade by country and by year for all members of AJCEP agreement.
+
+total_trade_ajcep <- subset(asean_selected_rta, iso3_d %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM", "JPN") | iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM", "JPN")) %>%
+  filter(year != 2021) %>%
+  group_by(year) %>%
+  summarise(total_trade = sum(tradeflow_comtrade_d),
+            total_trade_JPN = sum(tradeflow_comtrade_d[iso3_d == "JPN" | iso3_o == "JPN"]),
+            total_trade_BRN = sum(tradeflow_comtrade_d[iso3_d == "BRN" | iso3_o == "BRN"]),
+            total_trade_KHM = sum(tradeflow_comtrade_d[iso3_d == "KHM" | iso3_o == "KHM"]),
+            total_trade_IDN = sum(tradeflow_comtrade_d[iso3_d == "IDN" | iso3_o == "IDN"]),
+            total_trade_LAO = sum(tradeflow_comtrade_d[iso3_d == "LAO" | iso3_o == "LAO"]),
+            total_trade_MYS = sum(tradeflow_comtrade_d[iso3_d == "MYS" | iso3_o == "MYS"]),
+            total_trade_MMR = sum(tradeflow_comtrade_d[iso3_d == "MMR" | iso3_o == "MMR"]),
+            total_trade_PHL = sum(tradeflow_comtrade_d[iso3_d == "PHL" | iso3_o == "PHL"]),
+            total_trade_SGP = sum(tradeflow_comtrade_d[iso3_d == "SGP" | iso3_o == "SGP"]),
+            total_trade_THA = sum(tradeflow_comtrade_d[iso3_d == "THA" | iso3_o == "THA"]),
+            total_trade_VNM = sum(tradeflow_comtrade_d[iso3_d == "VNM" | iso3_o == "VNM"]))
+
+# We plot the evolution of the total amount of trade for each country of AJCEP from 1965 to 2020.
+
+ggplot(total_trade_ajcep, aes(x = year)) +
+  geom_line(aes(y = total_trade_JPN/1000000, color = "Japan")) +
+  geom_line(aes(y = total_trade_IDN/1000000, color = "Indonesia")) +
+  geom_line(aes(y = total_trade_MYS/1000000, color = "Malaysia")) +
+  geom_line(aes(y = total_trade_BRN/1000000, color = "Brunei")) +
+  geom_line(aes(y = total_trade_KHM/1000000, color = "Cambodia")) +
+  geom_line(aes(y = total_trade_LAO/1000000, color = "Laos")) +
+  geom_line(aes(y = total_trade_MMR/1000000, color = "Myanmar")) +
+  geom_line(aes(y = total_trade_PHL/1000000, color = "Philippines")) +
+  geom_line(aes(y = total_trade_SGP/1000000, color = "Singapore")) +
+  geom_line(aes(y = total_trade_THA/1000000, color = "Thailand")) +
+  geom_line(aes(y = total_trade_VNM/1000000, color = "Vietnam")) +
+  scale_color_brewer(name="Legend", palette = "Paired") +
+  labs(x = "Year", y = "Total Trade (in millions)", title = "Figure 3: Evolution of AJCEP's member states' total level of \ntrade (imports and exports) from 1965 to 2020") +
+  theme_bw() +
+  geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
+  annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks = seq(1965, 2020, 10), limits = c(1965, 2020))
+```
+
+### 2.2. Imports
+
+```{r}
+# We now create a dataset 'total_imports_ajcep' where we have the total amount of imports for each country by year.
+
+total_imports_ajcep <- subset(asean_selected_rta, iso3_d %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM", "JPN") | iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM", "JPN")) %>%
+  filter(year != 2021) %>%
+  group_by(year) %>%
+  summarise(total_imports = sum(tradeflow_comtrade_d[iso3_d %in% c("JPN", "BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM")]),
+            total_imports_JPN = sum(tradeflow_comtrade_d[iso3_d == "JPN"]),
+            total_imports_BRN = sum(tradeflow_comtrade_d[iso3_d == "BRN"]),
+            total_imports_KHM = sum(tradeflow_comtrade_d[iso3_d == "KHM"]),
+            total_imports_IDN = sum(tradeflow_comtrade_d[iso3_d == "IDN"]),
+            total_imports_LAO = sum(tradeflow_comtrade_d[iso3_d == "LAO"]),
+            total_imports_MYS = sum(tradeflow_comtrade_d[iso3_d == "MYS"]),
+            total_imports_MMR = sum(tradeflow_comtrade_d[iso3_d == "MMR"]),
+            total_imports_PHL = sum(tradeflow_comtrade_d[iso3_d == "PHL"]),
+            total_imports_SGP = sum(tradeflow_comtrade_d[iso3_d == "SGP"]),
+            total_imports_THA = sum(tradeflow_comtrade_d[iso3_d == "THA"]),
+            total_imports_VNM = sum(tradeflow_comtrade_d[iso3_d == "VNM"]))
+
+# We plot the total level of imports for each AJCEP country and for each year.
+
+ggplot(total_imports_ajcep, aes(x = year)) +
+  geom_line(aes(y = total_imports_JPN/1000000, color = "Japan")) +
+  geom_line(aes(y = total_imports_IDN/1000000, color = "Indonesia")) +
+  geom_line(aes(y = total_imports_MYS/1000000, color = "Malaysia")) +
+  geom_line(aes(y = total_imports_BRN/1000000, color = "Brunei")) +
+  geom_line(aes(y = total_imports_KHM/1000000, color = "Cambodia")) +
+  geom_line(aes(y = total_imports_LAO/1000000, color = "Laos")) +
+  geom_line(aes(y = total_imports_MMR/1000000, color = "Myanmar")) +
+  geom_line(aes(y = total_imports_PHL/1000000, color = "Philippines")) +
+  geom_line(aes(y = total_imports_SGP/1000000, color = "Singapore")) +
+  geom_line(aes(y = total_imports_THA/1000000, color = "Thailand")) +
+  geom_line(aes(y = total_imports_VNM/1000000, color = "Vietnam")) +
+  scale_color_brewer(name="Legend", palette = "Paired") +
+  labs(x = "Year", y = "Total level of imports \n(in millions)", title = "Figure 4: Evolution of AJCEP's member states' total level of \nimports from 1965 to 2020") +
+  theme_bw() +
+  geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
+  annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks = seq(1965, 2020, 10), limits = c(1965, 2020))
+```
+
+### 2.3. Exports
+
+### 2.2. Imports
+
+```{r}
+# We now create a dataset 'total_imports_ajcep' where we have the total amount of imports for each country by year.
+
+total_exports_ajcep <- subset(asean_selected_rta, iso3_d %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM", "JPN") | iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM", "JPN")) %>%
+  filter(year != 2021) %>%
+  group_by(year) %>%
+  summarise(total_exports = sum(tradeflow_comtrade_d[iso3_o %in% c("JPN", "BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM")]),
+            total_exports_JPN = sum(tradeflow_comtrade_d[iso3_o == "JPN"]),
+            total_exports_BRN = sum(tradeflow_comtrade_d[iso3_o == "BRN"]),
+            total_exports_KHM = sum(tradeflow_comtrade_d[iso3_o == "KHM"]),
+            total_exports_IDN = sum(tradeflow_comtrade_d[iso3_o == "IDN"]),
+            total_exports_LAO = sum(tradeflow_comtrade_d[iso3_o == "LAO"]),
+            total_exports_MYS = sum(tradeflow_comtrade_d[iso3_o == "MYS"]),
+            total_exports_MMR = sum(tradeflow_comtrade_d[iso3_o == "MMR"]),
+            total_exports_PHL = sum(tradeflow_comtrade_d[iso3_o == "PHL"]),
+            total_exports_SGP = sum(tradeflow_comtrade_d[iso3_o == "SGP"]),
+            total_exports_THA = sum(tradeflow_comtrade_d[iso3_o == "THA"]),
+            total_exports_VNM = sum(tradeflow_comtrade_d[iso3_o == "VNM"]))
+
+# We plot the total level of imports for each AJCEP country and for each year.
+
+ggplot(total_exports_ajcep, aes(x = year)) +
+  geom_line(aes(y = total_exports_JPN/1000000, color = "Japan")) +
+  geom_line(aes(y = total_exports_IDN/1000000, color = "Indonesia")) +
+  geom_line(aes(y = total_exports_MYS/1000000, color = "Malaysia")) +
+  geom_line(aes(y = total_exports_BRN/1000000, color = "Brunei")) +
+  geom_line(aes(y = total_exports_KHM/1000000, color = "Cambodia")) +
+  geom_line(aes(y = total_exports_LAO/1000000, color = "Laos")) +
+  geom_line(aes(y = total_exports_MMR/1000000, color = "Myanmar")) +
+  geom_line(aes(y = total_exports_PHL/1000000, color = "Philippines")) +
+  geom_line(aes(y = total_exports_SGP/1000000, color = "Singapore")) +
+  geom_line(aes(y = total_exports_THA/1000000, color = "Thailand")) +
+  geom_line(aes(y = total_exports_VNM/1000000, color = "Vietnam")) +
+  scale_color_brewer(name="Legend", palette = "Paired") +
+  labs(x = "Year", y = "Total level of exports \n(in millions)", title = "Figure 5: Evolution of AJCEP's member states' total level of \nexports from 1965 to 2020") +
+  theme_bw() +
+  geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
+  annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks = seq(1965, 2020, 10), limits = c(1965, 2020))
+```
+
+## 3. Japan-ASEAN trade
+
+We want to focus on the trade between Japan and ASEAN only and not on the trade with the RoW anymore.
+
+```{r}
+
+```
+
+
+
+
+## 2. Test (ACJEP's member states trade level)
 
 ```{r}
 #Code for 2000
