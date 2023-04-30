@@ -130,7 +130,7 @@ We will analyse briefly the situation of Japan in terms of trade and of GDP. For
 ```{r}
 # We create a new dataset 'trade_japan' with three columns: 1. Total amount of trade (imports and exports) 'total_trade' by year; 2. Total amount of imports 'total_imports' per year; 3. Total amount of exports 'total_exports' by year. We remove 2021 since there are no trade flows for this year.
 
-# We first want to plot the total amount of trade flows considering imports and exports.
+# We first plot the total amount of trade flows considering imports and exports.
 
 trade_japan <- subset(asean_selected_rta, iso3_d=="JPN" | iso3_o=="JPN") %>%
   filter(year != 2021) %>%
