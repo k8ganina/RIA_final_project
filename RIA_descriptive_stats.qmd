@@ -14,6 +14,7 @@ library(fixest) # perform estimations with multiple fixed-effects
 library(stargazer)
 library(flextable)
 library(huxtable)
+library(RColorBrewer) # nice colors on the graph
 ```
 
 # Data
@@ -121,7 +122,7 @@ asean_selected_rta <- asean_selected_rta %>%
 
 # Descriptive analysis
 
-We will analyse briefly the situation of Japan in terms of trade and of GDP. For this, we will focus on Japan only and on all ACJEP members. We will also compare the situation of Japan between two years: 2000 when the negotiations of ASEAN+1 did not start yet and 2012, four years after the implementation of AJCEP.
+We will analyse briefly the situation of Japan in terms of trade and of GDP. For this, we will focus firstly on Japan only and secondly on all ACJEP members. We will also compare the situation of Japan between two years: 2000 when the negotiations of ASEAN+1 did not start yet and 2012, four years after the implementation of AJCEP.
 
 ## 1. Japan's trade level
 
@@ -141,13 +142,14 @@ trade_japan <- subset(asean_selected_rta, iso3_d=="JPN" | iso3_o=="JPN") %>%
 
 ggplot(trade_japan, aes(x = year, y = total_trade/1000000)) +
   geom_line() +
-  geom_vline(xintercept = 2008, linetype = "solid", color = "red") +
+  geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
   annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
   labs(title = "Figure 1: Evolution of Japan's total level of trade (imports and exports) \nfrom 1965 to 2020", x = "Year", y = "Total trade (in million)") +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_x_continuous(breaks = seq(1965, 2020, 10), limits = c(1965, 2020))
 ```
+
 ### 1.2. Imports and exports
 
 ```{r}
@@ -156,7 +158,7 @@ ggplot(trade_japan, aes(x = year, y = total_trade/1000000)) +
 ggplot() +
   geom_line(data=trade_japan, aes(x = year, y = total_imports/1000000, color="Imports")) +
   geom_line(data=trade_japan, aes(x = year, y = total_exports/1000000, color="Exports")) +
-  geom_vline(xintercept = 2008, linetype = "solid", color = "red") +
+  geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
   annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
   labs(title = "Figure 2: Evolution of Japan's levels of imports and exports \nfrom 1965 to 2020", x = "Year", y = "Total amount of imports and exports \n(in million)") +
   theme_bw() +
@@ -165,34 +167,374 @@ ggplot() +
   scale_color_manual(name = "Legend", values = c("Imports" = "blue", "Exports" = "orange"))
 ```
 
+## 2. AJCEP's member states trade level
 
-## 2. ACJEP's member states trade level
+Here, we create three dataset: 1. Global trade level of each AJCEP member state (imports and exports) 'total_trade_acjep' per year; 2. Total imports of each AJCEP member state 'total_imports_ajcep' per year; 3. Total exports of each AJCEP member state 'total_exports_ajcep' per year.
+
+### 2.1. Global trade level
 
 ```{r}
-#Code for 2000
- data_asean_description <- data_asean_raw %>%
-     select(year, iso3_o, iso3_d, tradeflow_comtrade_d) %>%
-     filter(year == 2000 & iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM","JPN") & iso3_d %in% c("BRN","KHM","IDN","LAO","MYS","MMR","PHL","SGP","THA","VNM","JPN"))
+# We create a new dataset 'total_trade_acjep' with reported in it the total amount of trade by country and by year for all members of AJCEP agreement.
 
+<<<<<<< HEAD
 
 
 plot_2000 <- ggplot(data_asean_description, aes(x = iso3_o, y = tradeflow_comtrade_d, fill = iso3_o)) +
      geom_bar(stat = "identity") +
      labs(title = "Trade Levels reported by the destination country for 10 ASEAN members countries in 2000",
           x = "Country", y = "Trade Level")
+=======
+total_trade_ajcep <- subset(asean_selected_rta, iso3_d %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM", "JPN") | iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM", "JPN")) %>%
+  filter(year != 2021) %>%
+  group_by(year) %>%
+  summarise(total_trade = sum(tradeflow_comtrade_d),
+            total_trade_JPN = sum(tradeflow_comtrade_d[iso3_d == "JPN" | iso3_o == "JPN"]),
+            total_trade_BRN = sum(tradeflow_comtrade_d[iso3_d == "BRN" | iso3_o == "BRN"]),
+            total_trade_KHM = sum(tradeflow_comtrade_d[iso3_d == "KHM" | iso3_o == "KHM"]),
+            total_trade_IDN = sum(tradeflow_comtrade_d[iso3_d == "IDN" | iso3_o == "IDN"]),
+            total_trade_LAO = sum(tradeflow_comtrade_d[iso3_d == "LAO" | iso3_o == "LAO"]),
+            total_trade_MYS = sum(tradeflow_comtrade_d[iso3_d == "MYS" | iso3_o == "MYS"]),
+            total_trade_MMR = sum(tradeflow_comtrade_d[iso3_d == "MMR" | iso3_o == "MMR"]),
+            total_trade_PHL = sum(tradeflow_comtrade_d[iso3_d == "PHL" | iso3_o == "PHL"]),
+            total_trade_SGP = sum(tradeflow_comtrade_d[iso3_d == "SGP" | iso3_o == "SGP"]),
+            total_trade_THA = sum(tradeflow_comtrade_d[iso3_d == "THA" | iso3_o == "THA"]),
+            total_trade_VNM = sum(tradeflow_comtrade_d[iso3_d == "VNM" | iso3_o == "VNM"]))
+>>>>>>> e8d842ca2f15c90f0c2d0a803ef17a230e2c5593
 
-plot_2000
+# We plot the evolution of the total amount of trade for each country of AJCEP from 1965 to 2020.
 
-#Code for 2012
-data_asean_description <- data_asean_raw %>%
-     select(year, iso3_o, iso3_d, tradeflow_comtrade_d) %>%
-     filter(year == 2012 & iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM","JPN") & iso3_d %in% c("BRN","KHM","IDN","LAO","MYS","MMR","PHL","SGP","THA","VNM","JPN"))
-
-
-plot_2012<- ggplot(data_asean_description, aes(x = iso3_o, y = tradeflow_comtrade_d, fill = iso3_o)) +
-     geom_bar(stat = "identity") +
-     labs(title = "Trade Levels reported by the destination country for 10 ASEAN members countries in 2012",
-          x = "Country", y = "Trade Level")
-
-grid.arrange(plot_2000, plot_2012, ncol = 2)
+ggplot(total_trade_ajcep, aes(x = year)) +
+  geom_line(aes(y = total_trade_JPN/1000000, color = "Japan")) +
+  geom_line(aes(y = total_trade_IDN/1000000, color = "Indonesia")) +
+  geom_line(aes(y = total_trade_MYS/1000000, color = "Malaysia")) +
+  geom_line(aes(y = total_trade_BRN/1000000, color = "Brunei")) +
+  geom_line(aes(y = total_trade_KHM/1000000, color = "Cambodia")) +
+  geom_line(aes(y = total_trade_LAO/1000000, color = "Laos")) +
+  geom_line(aes(y = total_trade_MMR/1000000, color = "Myanmar")) +
+  geom_line(aes(y = total_trade_PHL/1000000, color = "Philippines")) +
+  geom_line(aes(y = total_trade_SGP/1000000, color = "Singapore")) +
+  geom_line(aes(y = total_trade_THA/1000000, color = "Thailand")) +
+  geom_line(aes(y = total_trade_VNM/1000000, color = "Vietnam")) +
+  scale_color_brewer(name="Legend", palette = "Paired") +
+  labs(x = "Year", y = "Total Trade (in millions)", title = "Figure 3: Evolution of AJCEP's member states' total level of \ntrade (imports and exports) from 1965 to 2020") +
+  theme_bw() +
+  geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
+  annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks = seq(1965, 2020, 10), limits = c(1965, 2020))
 ```
+
+### 2.2. Imports
+
+```{r}
+# We now create a dataset 'total_imports_ajcep' where we have the total amount of imports for each country by year.
+
+total_imports_ajcep <- subset(asean_selected_rta, iso3_d %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM", "JPN") | iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM", "JPN")) %>%
+  filter(year != 2021) %>%
+  group_by(year) %>%
+  summarise(total_imports = sum(tradeflow_comtrade_d[iso3_d %in% c("JPN", "BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM")]),
+            total_imports_JPN = sum(tradeflow_comtrade_d[iso3_d == "JPN"]),
+            total_imports_BRN = sum(tradeflow_comtrade_d[iso3_d == "BRN"]),
+            total_imports_KHM = sum(tradeflow_comtrade_d[iso3_d == "KHM"]),
+            total_imports_IDN = sum(tradeflow_comtrade_d[iso3_d == "IDN"]),
+            total_imports_LAO = sum(tradeflow_comtrade_d[iso3_d == "LAO"]),
+            total_imports_MYS = sum(tradeflow_comtrade_d[iso3_d == "MYS"]),
+            total_imports_MMR = sum(tradeflow_comtrade_d[iso3_d == "MMR"]),
+            total_imports_PHL = sum(tradeflow_comtrade_d[iso3_d == "PHL"]),
+            total_imports_SGP = sum(tradeflow_comtrade_d[iso3_d == "SGP"]),
+            total_imports_THA = sum(tradeflow_comtrade_d[iso3_d == "THA"]),
+            total_imports_VNM = sum(tradeflow_comtrade_d[iso3_d == "VNM"]))
+
+# We plot the total level of imports for each AJCEP country and for each year.
+
+ggplot(total_imports_ajcep, aes(x = year)) +
+  geom_line(aes(y = total_imports_JPN/1000000, color = "Japan")) +
+  geom_line(aes(y = total_imports_IDN/1000000, color = "Indonesia")) +
+  geom_line(aes(y = total_imports_MYS/1000000, color = "Malaysia")) +
+  geom_line(aes(y = total_imports_BRN/1000000, color = "Brunei")) +
+  geom_line(aes(y = total_imports_KHM/1000000, color = "Cambodia")) +
+  geom_line(aes(y = total_imports_LAO/1000000, color = "Laos")) +
+  geom_line(aes(y = total_imports_MMR/1000000, color = "Myanmar")) +
+  geom_line(aes(y = total_imports_PHL/1000000, color = "Philippines")) +
+  geom_line(aes(y = total_imports_SGP/1000000, color = "Singapore")) +
+  geom_line(aes(y = total_imports_THA/1000000, color = "Thailand")) +
+  geom_line(aes(y = total_imports_VNM/1000000, color = "Vietnam")) +
+  scale_color_brewer(name="Legend", palette = "Paired") +
+  labs(x = "Year", y = "Total level of imports \n(in millions)", title = "Figure 4: Evolution of AJCEP's member states' total level of \nimports from 1965 to 2020") +
+  theme_bw() +
+  geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
+  annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks = seq(1965, 2020, 10), limits = c(1965, 2020))
+```
+
+### 2.3. Exports
+
+```{r}
+# We now create a dataset 'total_imports_ajcep' where we have the total amount of imports for each country by year.
+
+total_exports_ajcep <- subset(asean_selected_rta, iso3_d %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM", "JPN") | iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM", "JPN")) %>%
+  filter(year != 2021) %>%
+  group_by(year) %>%
+  summarise(total_exports = sum(tradeflow_comtrade_d[iso3_o %in% c("JPN", "BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM")]),
+            total_exports_JPN = sum(tradeflow_comtrade_d[iso3_o == "JPN"]),
+            total_exports_BRN = sum(tradeflow_comtrade_d[iso3_o == "BRN"]),
+            total_exports_KHM = sum(tradeflow_comtrade_d[iso3_o == "KHM"]),
+            total_exports_IDN = sum(tradeflow_comtrade_d[iso3_o == "IDN"]),
+            total_exports_LAO = sum(tradeflow_comtrade_d[iso3_o == "LAO"]),
+            total_exports_MYS = sum(tradeflow_comtrade_d[iso3_o == "MYS"]),
+            total_exports_MMR = sum(tradeflow_comtrade_d[iso3_o == "MMR"]),
+            total_exports_PHL = sum(tradeflow_comtrade_d[iso3_o == "PHL"]),
+            total_exports_SGP = sum(tradeflow_comtrade_d[iso3_o == "SGP"]),
+            total_exports_THA = sum(tradeflow_comtrade_d[iso3_o == "THA"]),
+            total_exports_VNM = sum(tradeflow_comtrade_d[iso3_o == "VNM"]))
+
+# We plot the total level of imports for each AJCEP country and for each year.
+
+ggplot(total_exports_ajcep, aes(x = year)) +
+  geom_line(aes(y = total_exports_JPN/1000000, color = "Japan")) +
+  geom_line(aes(y = total_exports_IDN/1000000, color = "Indonesia")) +
+  geom_line(aes(y = total_exports_MYS/1000000, color = "Malaysia")) +
+  geom_line(aes(y = total_exports_BRN/1000000, color = "Brunei")) +
+  geom_line(aes(y = total_exports_KHM/1000000, color = "Cambodia")) +
+  geom_line(aes(y = total_exports_LAO/1000000, color = "Laos")) +
+  geom_line(aes(y = total_exports_MMR/1000000, color = "Myanmar")) +
+  geom_line(aes(y = total_exports_PHL/1000000, color = "Philippines")) +
+  geom_line(aes(y = total_exports_SGP/1000000, color = "Singapore")) +
+  geom_line(aes(y = total_exports_THA/1000000, color = "Thailand")) +
+  geom_line(aes(y = total_exports_VNM/1000000, color = "Vietnam")) +
+  scale_color_brewer(name="Legend", palette = "Paired") +
+  labs(x = "Year", y = "Total level of exports \n(in millions)", title = "Figure 5: Evolution of AJCEP's member states' total level of \nexports from 1965 to 2020") +
+  theme_bw() +
+  geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
+  annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_continuous(breaks = seq(1965, 2020, 10), limits = c(1965, 2020))
+```
+
+## 3. Japan-ASEAN trade
+
+We want to focus on the trade between Japan and ASEAN only and not on the trade with the RoW anymore.
+  (1) Japan's exports to ASEAN (= ASEAN's imports from Japan)
+  (2) Japan's imports from ASEAN (= ASEAN's exports to Japan)
+
+```{r}
+# We create a new dataset 'trade_japan_asean' where we can see the trade within AJCEP countries.
+
+trade_japan_asean <- asean_selected_rta %>%
+  select(year, pair, iso3_o, iso3_d, tradeflow_comtrade_d) %>%
+  filter(iso3_d %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM","JPN") & iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM","JPN")) %>%
+  filter(year != 2021)
+```
+
+
+### 3.1. Japan's total exports to each ASEAN country
+
+```{r}
+# We firstly focus on Japan's total exports to each ASEAN country in 2000 and 2012.
+
+japan_exports <- trade_japan_asean %>%
+  filter(iso3_o == "JPN") %>%
+  filter(year %in% c(2000, 2012) & iso3_d != "JPN") %>%
+  group_by(year, iso3_d) %>%
+  summarize(total_exports = sum(tradeflow_comtrade_d)) %>%
+  pivot_wider(names_from = iso3_d, values_from = total_exports)
+
+japan_exports
+```
+
+### 3.2. Japan's total imports from each ASEAN country
+
+```{r}
+# We can now focus on Japan's total imports from each ASEAN country in 2000 and 2012.
+
+japan_imports <- trade_japan_asean %>%
+  filter(iso3_d == "JPN") %>%
+  filter(year %in% c(2000, 2012) & iso3_o != "JPN") %>%
+  group_by(year, iso3_o) %>%
+  summarize(total_imports = sum(tradeflow_comtrade_d)) %>%
+  pivot_wider(names_from = iso3_o, values_from = total_imports)
+
+japan_imports
+```
+
+### 3.3. Overview
+
+```{r}
+# We create a table with Japan's total levels of imports and exports from and to each ASEAN country both in 2000 and 2012.
+
+as_hux(japan_exports) %>%
+  set_caption("Japan level of export to each ASEAN country in 2000 and 2012") %>%
+  set_align(everywhere,-1,"center") %>%
+  set_top_border(2, everywhere) %>%
+  set_right_border(everywhere, 1) %>%
+  set_bottom_border(3, everywhere)
+
+as_hux(japan_imports) %>%
+  set_caption("Japan level of import from each ASEAN country in 2000 and 2012") %>%
+  set_align(everywhere,-1,"center") %>%
+  set_top_border(2, everywhere) %>%
+  set_right_border(everywhere, 1) %>%
+  set_bottom_border(3, everywhere)
+```
+
+## 4. Japan's world trade partners
+
+```{r}
+# Dataset with the trade of Japan with all the world.
+
+trade_japan_world <- subset(asean_selected_rta, iso3_d=="JPN" | iso3_o=="JPN") %>%
+  filter(year != 2021) %>%
+  group_by(year) %>%
+  select(year, pair, iso3_d, iso3_o, tradeflow_comtrade_d)
+```
+
+### 4.1. Imports of Japan
+
+```{r}
+# We want to work about the imports of Japan from all the world.We also want to add three columns from the dataset 'trade_japan' to add the total trade of Japan, its total exports and its total imports for 2000 and 2012. Therefore, we can add a last column with the share of imports to each country compared to the total imports of Japan.
+
+imports_japan_world <- subset(trade_japan_world, iso3_d=="JPN") %>%
+  filter(year %in% c(2000, 2012) & iso3_o != "JPN") %>%
+  group_by(year, iso3_o)
+  
+imports_japan_world <- imports_japan_world %>%
+  left_join(trade_japan, by = "year")
+
+imports_japan_world <- imports_japan_world %>%
+  mutate(share_japan_imports = round((tradeflow_comtrade_d/total_imports)*100, 3),
+         share_japan_imports = paste(share_japan_imports, "%", sep = ""))
+
+imports_japan_world$share_japan_imports <- as.numeric(gsub("%", "", imports_japan_world$share_japan_imports))
+```
+
+
+```{r}
+# We calculate the top 5 imports origins of Japan in 2000.
+
+top_imports_2000_sum <- imports_japan_world %>%
+  filter(year == 2000) %>%
+  group_by(iso3_o) %>%
+  summarize(total_imports = sum(tradeflow_comtrade_d),
+            share_japan_imports = sum(share_japan_imports)) %>%
+  top_n(5, share_japan_imports) %>%
+  arrange(desc(share_japan_imports))
+
+# We plot a graph (pie chart) for 2000.
+
+ggplot(top_imports_2000_sum, aes(x = "", y = share_japan_imports, fill = iso3_o)) + 
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Five main exporters to Japan in 2000", fill = "Country", x = NULL, y = NULL) +
+  theme_void() +
+  theme(legend.position = "left") +
+  geom_text(aes(label = paste0(round(share_japan_imports, 2), "%")), 
+            position = position_stack(vjust = 0.5), size = 3.5) +
+  scale_fill_manual(name = "Country", values = brewer.pal(5, "Paired"), 
+                    labels = c("China", "Indonesia", "South Korea", "Taiwan", "United States"))
+```
+
+
+```{r}
+# We calculate the top 5 imports origins of Japan in 2012.
+
+top_imports_2012_sum <- imports_japan_world %>%
+  filter(year == 2012) %>%
+  group_by(iso3_o) %>%
+  summarize(total_imports = sum(tradeflow_comtrade_d),
+            share_japan_imports = sum(share_japan_imports)) %>%
+  top_n(5, share_japan_imports) %>%
+  arrange(desc(share_japan_imports))
+
+# We plot a graph (pie chart) for 2012.
+
+ggplot(top_imports_2012_sum, aes(x = "", y = share_japan_imports, fill = iso3_o)) + 
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Five main exporters to Japan in 2012", fill = "Country", x = NULL, y = NULL) +
+  theme_void() +
+  theme(legend.position = "left") +
+  geom_text(aes(label = paste0(round(share_japan_imports, 2), "%")), 
+            position = position_stack(vjust = 0.5), size = 3.5) +
+  scale_fill_manual(name = "Country", values = brewer.pal(5, "Paired"),
+                    labels = c("United Arab Emirates", "Australia", "China", "Saudi Arabia", "United States"))
+```
+
+### 4.2. Exports of Japan
+
+```{r}
+# Exports of Japan in all the world.
+
+exports_japan_world <- subset(trade_japan_world, iso3_o=="JPN") %>%
+  filter(year %in% c(2000, 2012) & iso3_d != "JPN") %>%
+  group_by(year, iso3_d)
+
+exports_japan_world <- exports_japan_world %>%
+  left_join(trade_japan, by = "year")
+
+exports_japan_world <- exports_japan_world %>%
+  mutate(share_japan_exports = round((tradeflow_comtrade_d/total_exports)*100, 3),
+         share_japan_exports = paste(share_japan_exports, "%", sep = ""))
+
+exports_japan_world$share_japan_exports <- as.numeric(gsub("%", "", exports_japan_world$share_japan_exports))
+```
+
+
+```{r}
+# We calculate the top 5 exports destinations of Japan in 2000.
+
+top_exports_2000_sum <- exports_japan_world %>%
+  filter(year == 2000) %>%
+  group_by(iso3_d) %>%
+  summarize(total_exports = sum(tradeflow_comtrade_d),
+            share_japan_exports = sum(share_japan_exports)) %>%
+  top_n(5, share_japan_exports) %>%
+  arrange(desc(share_japan_exports))
+
+# We plot a graph (pie chart) for 2000.
+
+ggplot(top_exports_2000_sum, aes(x = "", y = share_japan_exports, fill = iso3_d)) + 
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Five main exports destinations of Japan in 2000", fill = "Country", x = NULL, y = NULL) +
+  theme_void() +
+  theme(legend.position = "left") +
+  geom_text(aes(label = paste0(round(share_japan_exports, 2), "%")), 
+            position = position_stack(vjust = 0.5), size = 3.5) +
+  scale_fill_manual(name = "Country", values = brewer.pal(5, "Paired"),
+                    labels = c("China", "Hong Kong", "South Korea", "Taiwan", "United States"))
+```
+
+```{r}
+# We calculate the top 5 exports destinations of Japan in 2012.
+
+top_exports_2012_sum <- exports_japan_world %>%
+  filter(year == 2012) %>%
+  group_by(iso3_d) %>%
+  summarize(total_exports = sum(tradeflow_comtrade_d),
+            share_japan_exports = sum(share_japan_exports)) %>%
+  top_n(5, share_japan_exports) %>%
+  arrange(desc(share_japan_exports))
+
+# We plot a graph (pie chart) for 2012.
+
+ggplot(top_exports_2012_sum, aes(x = "", y = share_japan_exports, fill = iso3_d)) + 
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar(theta = "y") +
+  labs(title = "Five main exports destinations of Japan in 2012", fill = "Country", x = NULL, y = NULL) +
+  theme_void() +
+  theme(legend.position = "left") +
+  geom_text(aes(label = paste0(round(share_japan_exports, 2), "%")), 
+            position = position_stack(vjust = 0.5), size = 3.5) +
+  scale_fill_manual(name = "Country", values = brewer.pal(5, "Paired"),
+                    labels = c("China", "South Korea", "Thailand", "Taiwan", "United States"))
+```
+
+
+# Notes
+
+(1) Put 2008 on the same line as the other years, below the plot.
+(2) Review format of tables in Japan exports and imports to and from ASEAN countries.
+(3) Graph with main trading partners for Japan-ASEAN?
+
+
