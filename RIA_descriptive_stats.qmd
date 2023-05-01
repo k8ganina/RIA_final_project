@@ -319,8 +319,10 @@ trade_japan_asean <- asean_selected_rta %>%
 ```
 
 
+### 3.1. Japan's total exports to each ASEAN country
+
 ```{r}
-# We firstly focus on Japan's total exports to each ASEAN countries in 2000 and 2012.
+# We firstly focus on Japan's total exports to each ASEAN country in 2000 and 2012.
 
 japan_exports <- trade_japan_asean %>%
   filter(iso3_o == "JPN") %>%
@@ -332,8 +334,10 @@ japan_exports <- trade_japan_asean %>%
 japan_exports
 ```
 
+### 3.2. Japan's total imports from each ASEAN country
+
 ```{r}
-# We can now focus on Japan's total imports from each ASEAN countries in 2000 and 2012.
+# We can now focus on Japan's total imports from each ASEAN country in 2000 and 2012.
 
 japan_imports <- trade_japan_asean %>%
   filter(iso3_d == "JPN") %>%
@@ -345,6 +349,7 @@ japan_imports <- trade_japan_asean %>%
 japan_imports
 ```
 
+### 3.3. Overview
 
 ```{r}
 # We create a table with Japan's total levels of imports and exports from and to each ASEAN country both in 2000 and 2012.
@@ -378,133 +383,149 @@ trade_japan_world <- subset(asean_selected_rta, iso3_d=="JPN" | iso3_o=="JPN") %
 ### 4.1. Imports of Japan
 
 ```{r}
-# Imports of Japan from all the world.
+# We want to work about the imports of Japan from all the world.We also want to add three columns from the dataset 'trade_japan' to add the total trade of Japan, its total exports and its total imports for 2000 and 2012. Therefore, we can add a last column with the share of imports to each country compared to the total imports of Japan.
 
 imports_japan_world <- subset(trade_japan_world, iso3_d=="JPN") %>%
   filter(year %in% c(2000, 2012) & iso3_o != "JPN") %>%
   group_by(year, iso3_o)
+  
+imports_japan_world <- imports_japan_world %>%
+  left_join(trade_japan, by = "year")
 
-# Top 5 imports partners of Japan in 2000
+imports_japan_world <- imports_japan_world %>%
+  mutate(share_japan_imports = round((tradeflow_comtrade_d/total_imports)*100, 3),
+         share_japan_imports = paste(share_japan_imports, "%", sep = ""))
+
+imports_japan_world$share_japan_imports <- as.numeric(gsub("%", "", imports_japan_world$share_japan_imports))
+```
+
+
+```{r}
+# We calculate the top 5 imports origins of Japan in 2000.
 
 top_imports_2000_sum <- imports_japan_world %>%
   filter(year == 2000) %>%
   group_by(iso3_o) %>%
-  summarize(total_imports = sum(tradeflow_comtrade_d)) %>%
-  top_n(5, total_imports) %>%
-  arrange(desc(total_imports))
+  summarize(total_imports = sum(tradeflow_comtrade_d),
+            share_japan_imports = sum(share_japan_imports)) %>%
+  top_n(5, share_japan_imports) %>%
+  arrange(desc(share_japan_imports))
 
-# Plot the graph for 2000
+# We plot a graph (pie chart) for 2000.
 
-ggplot(top_imports_2000_sum, aes(x = "", y = total_imports, fill = iso3_o)) + 
+ggplot(top_imports_2000_sum, aes(x = "", y = share_japan_imports, fill = iso3_o)) + 
   geom_bar(width = 1, stat = "identity") +
   coord_polar(theta = "y") +
   labs(title = "Five main exporters to Japan in 2000", fill = "Country", x = NULL, y = NULL) +
   theme_void() +
-  theme(legend.position = "left")
+  theme(legend.position = "left") +
+  geom_text(aes(label = paste0(round(share_japan_imports, 2), "%")), 
+            position = position_stack(vjust = 0.5), size = 3.5) +
+  scale_fill_manual(name = "Country", values = brewer.pal(5, "Paired"), 
+                    labels = c("China", "Indonesia", "South Korea", "Taiwan", "United States"))
+```
 
 
-# Top 5 import partners of Japan in 2012
+```{r}
+# We calculate the top 5 imports origins of Japan in 2012.
 
 top_imports_2012_sum <- imports_japan_world %>%
   filter(year == 2012) %>%
   group_by(iso3_o) %>%
-  summarize(total_imports = sum(tradeflow_comtrade_d)) %>%
-  top_n(5, total_imports) %>%
-  arrange(desc(total_imports))
+  summarize(total_imports = sum(tradeflow_comtrade_d),
+            share_japan_imports = sum(share_japan_imports)) %>%
+  top_n(5, share_japan_imports) %>%
+  arrange(desc(share_japan_imports))
 
-# Plot the graph for 2012
+# We plot a graph (pie chart) for 2012.
 
-ggplot(top_imports_2012_sum, aes(x = "", y = total_imports, fill = iso3_o)) + 
+ggplot(top_imports_2012_sum, aes(x = "", y = share_japan_imports, fill = iso3_o)) + 
   geom_bar(width = 1, stat = "identity") +
   coord_polar(theta = "y") +
   labs(title = "Five main exporters to Japan in 2012", fill = "Country", x = NULL, y = NULL) +
   theme_void() +
-  theme(legend.position = "left")
+  theme(legend.position = "left") +
+  geom_text(aes(label = paste0(round(share_japan_imports, 2), "%")), 
+            position = position_stack(vjust = 0.5), size = 3.5) +
+  scale_fill_manual(name = "Country", values = brewer.pal(5, "Paired"),
+                    labels = c("United Arab Emirates", "Australia", "China", "Saudi Arabia", "United States"))
 ```
 
 ### 4.2. Exports of Japan
 
 ```{r}
-# Imports of Japan from all the world.
+# Exports of Japan in all the world.
 
 exports_japan_world <- subset(trade_japan_world, iso3_o=="JPN") %>%
   filter(year %in% c(2000, 2012) & iso3_d != "JPN") %>%
   group_by(year, iso3_d)
 
-# Top 5 exports partners of Japan in 2000
+exports_japan_world <- exports_japan_world %>%
+  left_join(trade_japan, by = "year")
+
+exports_japan_world <- exports_japan_world %>%
+  mutate(share_japan_exports = round((tradeflow_comtrade_d/total_exports)*100, 3),
+         share_japan_exports = paste(share_japan_exports, "%", sep = ""))
+
+exports_japan_world$share_japan_exports <- as.numeric(gsub("%", "", exports_japan_world$share_japan_exports))
+```
+
+
+```{r}
+# We calculate the top 5 exports destinations of Japan in 2000.
 
 top_exports_2000_sum <- exports_japan_world %>%
   filter(year == 2000) %>%
   group_by(iso3_d) %>%
-  summarize(total_exports = sum(tradeflow_comtrade_d)) %>%
-  top_n(5, total_exports) %>%
-  arrange(desc(total_exports))
+  summarize(total_exports = sum(tradeflow_comtrade_d),
+            share_japan_exports = sum(share_japan_exports)) %>%
+  top_n(5, share_japan_exports) %>%
+  arrange(desc(share_japan_exports))
 
-# Plot the graph for 2000
+# We plot a graph (pie chart) for 2000.
 
-ggplot(top_exports_2000_sum, aes(x = "", y = total_exports, fill = iso3_d)) + 
+ggplot(top_exports_2000_sum, aes(x = "", y = share_japan_exports, fill = iso3_d)) + 
   geom_bar(width = 1, stat = "identity") +
   coord_polar(theta = "y") +
-  labs(title = "Five main importers from Japan in 2000", fill = "Country", x = NULL, y = NULL) +
+  labs(title = "Five main exports destinations of Japan in 2000", fill = "Country", x = NULL, y = NULL) +
   theme_void() +
-  theme(legend.position = "left")
+  theme(legend.position = "left") +
+  geom_text(aes(label = paste0(round(share_japan_exports, 2), "%")), 
+            position = position_stack(vjust = 0.5), size = 3.5) +
+  scale_fill_manual(name = "Country", values = brewer.pal(5, "Paired"),
+                    labels = c("China", "Hong Kong", "South Korea", "Taiwan", "United States"))
+```
 
-
-# Top 5 export partners of Japan in 2012
+```{r}
+# We calculate the top 5 exports destinations of Japan in 2012.
 
 top_exports_2012_sum <- exports_japan_world %>%
   filter(year == 2012) %>%
   group_by(iso3_d) %>%
-  summarize(total_exports = sum(tradeflow_comtrade_d)) %>%
-  top_n(5, total_exports) %>%
-  arrange(desc(total_exports))
+  summarize(total_exports = sum(tradeflow_comtrade_d),
+            share_japan_exports = sum(share_japan_exports)) %>%
+  top_n(5, share_japan_exports) %>%
+  arrange(desc(share_japan_exports))
 
-# Plot the graph for 2012
-ggplot(top_exports_2012_sum, aes(x = "", y = total_exports, fill = iso3_d)) + 
+# We plot a graph (pie chart) for 2012.
+
+ggplot(top_exports_2012_sum, aes(x = "", y = share_japan_exports, fill = iso3_d)) + 
   geom_bar(width = 1, stat = "identity") +
   coord_polar(theta = "y") +
-  labs(title = "Five main importers from Japan in 2012", fill = "Country", x = NULL, y = NULL) +
+  labs(title = "Five main exports destinations of Japan in 2012", fill = "Country", x = NULL, y = NULL) +
   theme_void() +
-  theme(legend.position = "left")
+  theme(legend.position = "left") +
+  geom_text(aes(label = paste0(round(share_japan_exports, 2), "%")), 
+            position = position_stack(vjust = 0.5), size = 3.5) +
+  scale_fill_manual(name = "Country", values = brewer.pal(5, "Paired"),
+                    labels = c("China", "South Korea", "Thailand", "Taiwan", "United States"))
 ```
 
-
-
-
-## 2. Test (ACJEP's member states trade level)
-
-```{r}
-#Code for 2000
- data_asean_description <- data_asean_raw %>%
-     select(year, iso3_o, iso3_d, tradeflow_comtrade_d) %>%
-     filter(year == 2000 & iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM","JPN") & iso3_d %in% c("BRN","KHM","IDN","LAO","MYS","MMR","PHL","SGP","THA","VNM","JPN"))
-
-plot_2000 <- ggplot(data_asean_description, aes(x = iso3_o, y = tradeflow_comtrade_d, fill = iso3_o)) +
-     geom_bar(stat = "identity") +
-     labs(title = "Trade Levels reported by the destination country for 10 ASEAN members countries in 2000",
-          x = "Country", y = "Trade Level")
-
-plot_2000
-
-#Code for 2012
-data_asean_description <- data_asean_raw %>%
-     select(year, iso3_o, iso3_d, tradeflow_comtrade_d) %>%
-     filter(year == 2012 & iso3_o %in% c("BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "VNM","JPN") & iso3_d %in% c("BRN","KHM","IDN","LAO","MYS","MMR","PHL","SGP","THA","VNM","JPN"))
-
-
-plot_2012<- ggplot(data_asean_description, aes(x = iso3_o, y = tradeflow_comtrade_d, fill = iso3_o)) +
-     geom_bar(stat = "identity") +
-     labs(title = "Trade Levels reported by the destination country for 10 ASEAN members countries in 2012",
-          x = "Country", y = "Trade Level")
-
-grid.arrange(plot_2000, plot_2012, ncol = 2)
-```
 
 # Notes
 
 (1) Put 2008 on the same line as the other years, below the plot.
 (2) Review format of tables in Japan exports and imports to and from ASEAN countries.
-(3) Graph with main trading partners.
-(4) Trading partenrs Japan in the world: adding percentages.
+(3) Graph with main trading partners for Japan-ASEAN?
 
 
