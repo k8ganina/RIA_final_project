@@ -783,10 +783,12 @@ rta_poisson_endo = fepois(tradeflow_comtrade_d ~ gatt_wto_both + rta_excl_asean_
 
 summary(rta_poisson_endo)
 #rta coeff should be significant, why it's NOT???
+
 ```
 
 ### OLS Estimation
 ```{r}
+#for general RTAs
 rta_ols_endo = feols(ln_tradeflow_comtrade_d ~ gatt_wto_both + rta_excl_asean_plus + rta_asean_plus |
                           fe_exp_year + fe_imp_year + pair_id,
                         data = asean_selected_rta %>% filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
@@ -794,6 +796,16 @@ rta_ols_endo = feols(ln_tradeflow_comtrade_d ~ gatt_wto_both + rta_excl_asean_pl
 
 summary(rta_ols_endo)
 #RTA for ASEAN not signifficant, only significant for RoW
+
+
+
+#for all types of RTAs
+rta_ols_endo_det = feols(ln_tradeflow_comtrade_d ~ gatt_wto_both + rta_asean_plus_a_j + rta_asean_plus_j_a + jpn_cu + jpn_cu_eia + jpn_eia + jpn_fta + jpn_fta_eia + jpn_psa_eia + as.factor(rta_type_all_clean) |
+                          fe_exp_year + fe_imp_year + pair_id,
+                        data = asean_selected_rta %>% filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
+                        vcov = cluster ~ pair_id)
+
+summary(rta_ols_endo_det)
 
 ```
 
@@ -852,6 +864,7 @@ save_as_docx(table_asean_steps_docx, path = "table_asean_steps.docx")
 ```{r}
 table_asean_detailed <- huxreg("Directional" = rta_poisson_intra_dir,
                                "RTA Types" = rta_poisson_intra_all,
+                               "ENDG - RTA Types" = rta_ols_endo_det,
                     coefs = c("Log distance" = "ln_dist",
                               "Language" = "comlang_off",
                               "Colonizer" = "comcol",
@@ -872,13 +885,13 @@ table_asean_detailed <- huxreg("Directional" = rta_poisson_intra_dir,
                               "PSA & EIA in RoW" = "as.factor(rta_type_all_clean)7"),
                     number_format = 3,
                     error_pos = "same",
-                    statistics = c("N"="nobs", "pseudo R^2"="pseudo.r.squared"),
+                    statistics = c("N"="nobs","R^2"="r.squared", "pseudo R^2"="pseudo.r.squared"),
                     note = "Notes: Statistics based on author's calculations. All estimates are obtained with data for the period from 1965 to 2020 with 3-year intervals. Standard errors are clustered by country pair and are reported in parentheses. {stars}") %>%
-  insert_row("","(1) PPML", "(2) PPML", after = 0) %>%
-  insert_row(c("Fixed Effects", "Yes", "Yes"), after = 21) %>%
-  insert_row(c("Intra-national trade", "Yes", "Yes"), after = 22) %>%
+  insert_row("","(1) PPML", "(2) PPML", "(3) OLS", after = 0) %>%
+  insert_row(c("Fixed Effects", "Yes", "Yes", "Yes"), after = 21) %>%
+  insert_row(c("Intra-national trade", "Yes", "Yes", "No"), after = 22) %>%
   #insert_row(c("Japan in other RTAs", "No", "No", "Yes", "No", "Yes", "No", "Yes"), after = 38) %>%
-  set_col_width(c(0.3,rep(0.9/2,2))) %>%
+  set_col_width(c(0.3,rep(0.9/3,3))) %>%
   set_align(everywhere,-1,"center") %>%
   set_top_border(1,everywhere,1) %>%
   set_tb_borders(10,everywhere,0) %>%
