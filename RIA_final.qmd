@@ -237,8 +237,8 @@ table_tradit
 width(table_tradit) = 1 #Set relative table width for use in documents
 
 ## Export table to word
-table_tradit_docx = as_flextable(table_tradit)
-save_as_docx(table_tradit_docx, path = "table_tradit.docx")
+# table_tradit_docx = as_flextable(table_tradit)
+# save_as_docx(table_tradit_docx, path = "table_tradit.docx")
 ```
 
 
@@ -395,10 +395,10 @@ table_rta
 ```
 
 ```{r}
-width(table_rta) = 1 #Set relative table width for use in documents
-## Export table to word
-table_rta_docx = as_flextable(table_rta)
-save_as_docx(table_rta_docx, path = "table_rta.docx")
+# width(table_rta) = 1 #Set relative table width for use in documents
+# ## Export table to word
+# table_rta_docx = as_flextable(table_rta)
+# save_as_docx(table_rta_docx, path = "table_rta.docx")
 ```
 
 # 3. Estimates of RTAs (ASEAN specific)
@@ -570,10 +570,10 @@ table_rta_asean
 ```
 
 ```{r}
-width(table_rta_asean) = 1 #Set relative table width for use in documents
-## Export table to word
-table_rta_asean_docx = as_flextable(table_rta_asean)
-save_as_docx(table_rta_asean_docx, path = "table_rta_asean.docx")
+# width(table_rta_asean) = 1 #Set relative table width for use in documents
+# ## Export table to word
+# table_rta_asean_docx = as_flextable(table_rta_asean)
+# save_as_docx(table_rta_asean_docx, path = "table_rta_asean.docx")
 ```
 
 
@@ -920,7 +920,11 @@ save_as_docx(table_asean_detailed_docx, path = "table_asean_detailed.docx")
 asean_selected_rta = asean_selected_rta %>%
   group_by(iso3_o,iso3_d) %>%
   mutate(rta_excl_asean_plus_lead3 = tlead(rta_excl_asean_plus,n=3,along_with = year),
-         rta_asean_plus_lead3 = tlead(rta_asean_plus, n=3, along_with = year))
+         rta_asean_plus_lead3 = tlead(rta_asean_plus, n=3, along_with = year),
+         rta_excl_asean_plus_lead6 = tlead(rta_excl_asean_plus,n=6,along_with = year),
+         rta_asean_plus_lead6 = tlead(rta_asean_plus, n=6, along_with = year),
+         rta_excl_asean_plus_lead9 = tlead(rta_excl_asean_plus,n=9,along_with = year),
+         rta_asean_plus_lead9 = tlead(rta_asean_plus, n=9, along_with = year))
 ```
 
 ```{r}
@@ -945,6 +949,9 @@ rta_lead_asean = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + 
 
 summary(rta_lead_asean)
 ```
+
+
+
 
 ## 5.2. Allowing for potential non-linear and phasing-in effects
 
@@ -1007,9 +1014,6 @@ asean_selected_rta = asean_selected_rta %>%
 
 ##doesn't work as it should be, results are super weird
 ```
-
-
-
 
 
 
