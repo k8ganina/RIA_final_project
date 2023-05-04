@@ -544,5 +544,7 @@ ggplot(top_exports_2012_sum, aes(x = "", y = share_japan_exports, fill = iso3_d)
 
 (1) Review format of tables in Japan exports and imports to and from ASEAN countries.
 (2) Graph with main trading partners for Japan-ASEAN?
+(3) Tables -> add one line with the evolution of trade between 2000 and 2012 (%)
+(4) Camemberts -> add "others"
 
 
