@@ -142,21 +142,32 @@ trade_japan <- subset(asean_selected_rta, iso3_d=="JPN" | iso3_o=="JPN") %>%
             total_imports = sum(tradeflow_comtrade_d[iso3_d == "JPN"]),
             total_exports = sum(tradeflow_comtrade_d[iso3_o == "JPN"]))
 
-ggplot(trade_japan, aes(x = year, y = total_trade/1000000)) +
+fig_1 <- ggplot(trade_japan, aes(x = year, y = total_trade/1000000)) +
   geom_line() +
   geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
   labs(title = "Figure 1: Evolution of Japan's total level of trade (imports and exports) \nfrom 1965 to 2020", x = "Year", y = "Total trade (in million)") +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_x_continuous(breaks = seq(1968, 2018, 10), limits = c(1965, 2020))
+
+fig_1
 ```
+
+```{r}
+# Exporting the figure to png
+
+png("./fig_1.png")
+print(fig_1)
+dev.off()
+```
+
 
 ### 1.2. Imports and exports
 
 ```{r}
 # We now plot a graph with both total imports and total exports of Japan to see their evolution between 1965 and 2008.
 
-ggplot() +
+fig_2 <- ggplot() +
   geom_line(data=trade_japan, aes(x = year, y = total_imports/1000000, color="Imports")) +
   geom_line(data=trade_japan, aes(x = year, y = total_exports/1000000, color="Exports")) +
   geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
@@ -195,7 +206,7 @@ total_trade_ajcep <- subset(asean_selected_rta, iso3_d %in% c("BRN", "KHM", "IDN
 
 # We plot the evolution of the total amount of trade for each country of AJCEP from 1965 to 2020.
 
-ggplot(total_trade_ajcep, aes(x = year)) +
+fig_3 <- ggplot(total_trade_ajcep, aes(x = year)) +
   geom_line(aes(y = total_trade_JPN/1000000, color = "Japan")) +
   geom_line(aes(y = total_trade_IDN/1000000, color = "Indonesia")) +
   geom_line(aes(y = total_trade_MYS/1000000, color = "Malaysia")) +
@@ -214,6 +225,8 @@ ggplot(total_trade_ajcep, aes(x = year)) +
   annotate(geom = "text", x = 2008, y = -Inf, label = "2008", vjust = -1) +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_x_continuous(breaks = seq(1965, 2020, 10), limits = c(1965, 2020))
+
+fig_3
 ```
 
 ### 2.2. Imports
