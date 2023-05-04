@@ -362,7 +362,8 @@ as_hux(japan_exports) %>%
   set_align(everywhere,-1,"center") %>%
   set_top_border(2, everywhere) %>%
   set_right_border(everywhere, 1) %>%
-  set_bottom_border(3, everywhere)
+  set_bottom_border(3, everywhere) %>%
+  set_number_format(-1, -1, fmt_pretty(digits=1))
 
 as_hux(japan_imports) %>%
   set_caption("Japan level of import from each ASEAN country in 2000 and 2012") %>%
@@ -370,7 +371,7 @@ as_hux(japan_imports) %>%
   set_top_border(2, everywhere) %>%
   set_right_border(everywhere, 1) %>%
   set_bottom_border(3, everywhere) %>%
-  set_number_format(-1, -1, fmt_pretty(format=5))
+  set_number_format(-1, -1, fmt_pretty(digits=1))
 ```
 
 ## 4. Japan's world trade partners
@@ -427,17 +428,6 @@ ggplot(top_imports_2000_sum, aes(x = "", y = share_japan_imports, fill = iso3_o)
             position = position_stack(vjust = 0.5), size = 3.5) +
   scale_fill_manual(name = "Country", values = brewer.pal(5, "Paired"), 
                     labels = c("China", "Indonesia", "South Korea", "Taiwan", "United States"))
-
-
-ggplot(top_imports_2000_sum, aes(x = "", y = share_japan_imports, group=iso3_o)) + 
-  geom_bar(width = 1, stat = "identity", fill=iso3_o) +
-  coord_polar(theta = "y") +
-  labs(title = "Five main exporters to Japan in 2000", fill = "Country", x = NULL, y = NULL) +
-  theme_void() +
-  theme(legend.position = "left") +
-  geom_text(aes(label = paste0(round(share_japan_imports, 2), "%")), 
-            position = position_stack(vjust = 0.5), size = 3.5) +
-  scale_fill_discrete(labels = c("US", "Indonesia", "South Korea", "Taiwan", "China"))
 ```
 
 
@@ -539,8 +529,7 @@ ggplot(top_exports_2012_sum, aes(x = "", y = share_japan_exports, fill = iso3_d)
 
 # Notes
 
-(1) Put 2008 on the same line as the other years, below the plot.
-(2) Review format of tables in Japan exports and imports to and from ASEAN countries.
-(3) Graph with main trading partners for Japan-ASEAN?
+(1) Review format of tables in Japan exports and imports to and from ASEAN countries.
+(2) Graph with main trading partners for Japan-ASEAN?
 
 
