@@ -156,7 +156,7 @@ fig_1
 ```{r}
 # Exporting the figure to png
 
-png("./fig_1.png")
+png("./fig_1.png", width=600, height=400)
 print(fig_1)
 dev.off()
 ```
@@ -183,7 +183,7 @@ fig_2
 ```{r}
 # Exporting the figure to png
 
-png("./fig_2.png")
+png("./fig_2.png", width=600, height=400)
 print(fig_2)
 dev.off()
 ```
@@ -240,7 +240,7 @@ fig_3
 ```{r}
 # Exporting the figure to png
 
-png("./fig_3.png")
+png("./fig_3.png", width=600, height=400)
 print(fig_3)
 dev.off()
 ```
@@ -293,7 +293,7 @@ fig_4
 ```{r}
 # Exporting the figure to png
 
-png("./fig_4.png")
+png("./fig_4.png", width=600, height=400)
 print(fig_4)
 dev.off()
 ```
@@ -346,7 +346,7 @@ fig_5
 ```{r}
 # Exporting the figure to png
 
-png("./fig_5.png")
+png("./fig_5.png", width=600, height=400)
 print(fig_5)
 dev.off()
 ```
