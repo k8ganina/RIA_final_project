@@ -375,9 +375,14 @@ trade_japan_asean <- asean_selected_rta %>%
 japan_exports <- trade_japan_asean %>%
   filter(iso3_o == "JPN") %>%
   filter(year %in% c(2000, 2012) & iso3_d != "JPN") %>%
-  group_by(year, iso3_d) %>%
-  summarize(total_exports = sum(tradeflow_comtrade_d)) %>%
-  pivot_wider(names_from = iso3_d, values_from = total_exports)
+  group_by(iso3_d) %>%
+  summarize(`2000` = sum(tradeflow_comtrade_d[year == 2000]), 
+            `2012` = sum(tradeflow_comtrade_d[year == 2012]),
+            `Evolution (in %)` = round(((`2012` - `2000`) / `2000`) * 100, 2)) %>%
+  pivot_longer(cols = -iso3_d, names_to = "year", values_to = "value") %>%
+  pivot_wider(names_from = "iso3_d", values_from = "value")
+
+names(japan_exports) <- c("Year", "Brunei", "Indonesia", "Cambodia", "Laos", "Myanmar", "Malaysia", "Philippines", "Singapore", "Thailand", "Vietnam")
 
 japan_exports
 ```
@@ -390,9 +395,12 @@ japan_exports
 japan_imports <- trade_japan_asean %>%
   filter(iso3_d == "JPN") %>%
   filter(year %in% c(2000, 2012) & iso3_o != "JPN") %>%
-  group_by(year, iso3_o) %>%
-  summarize(total_imports = sum(tradeflow_comtrade_d)) %>%
-  pivot_wider(names_from = iso3_o, values_from = total_imports)
+  group_by(iso3_o) %>%
+  summarize(`2000` = sum(tradeflow_comtrade_d[year == 2000]), 
+            `2012` = sum(tradeflow_comtrade_d[year == 2012]),
+            `Evolution (in %)` = round(((`2012` - `2000`) / `2000`) * 100, 2)) %>%
+  pivot_longer(cols = -iso3_o, names_to = "year", values_to = "value") %>%
+  pivot_wider(names_from = "iso3_o", values_from = "value")
 
 names(japan_imports) <- c("Year", "Brunei", "Indonesia", "Cambodia", "Laos", "Myanmar", "Malaysia", "Philippines", "Singapore", "Thailand", "Vietnam")
 
@@ -404,21 +412,41 @@ japan_imports
 ```{r}
 # We create a table with Japan's total levels of imports and exports from and to each ASEAN country both in 2000 and 2012.
 
-as_hux(japan_exports) %>%
-  set_caption("Japan level of export to each ASEAN country in 2000 and 2012") %>%
+table_1_exports <- as_hux(japan_exports) %>%
+  set_caption("Table 1: Japan level of export to each ASEAN country in 2000 and 2012\n") %>%
   set_align(everywhere,-1,"center") %>%
   set_top_border(2, everywhere) %>%
   set_right_border(everywhere, 1) %>%
   set_bottom_border(3, everywhere) %>%
-  set_number_format(-1, -1, fmt_pretty(digits=1))
+  set_number_format(-1, -1, fmt_pretty(digits=1)) %>%
+  set_font_size(7.5) %>%
+  set_label("table_1_exports")
 
-as_hux(japan_imports) %>%
-  set_caption("Japan level of import from each ASEAN country in 2000 and 2012") %>%
+table_1_exports
+
+table_2_imports <- as_hux(japan_imports) %>%
+  set_caption("Table 2: Japan level of import from each ASEAN country in 2000 and 2012\n") %>%
   set_align(everywhere,-1,"center") %>%
   set_top_border(2, everywhere) %>%
   set_right_border(everywhere, 1) %>%
   set_bottom_border(3, everywhere) %>%
-  set_number_format(-1, -1, fmt_pretty(digits=1))
+  set_bottom_border_style("double") %>%
+  set_number_format(-1, -1, fmt_pretty(digits=1)) %>%
+  set_font_size(7.5) %>%
+  set_label("table_2_imports")
+
+table_2_imports
+
+width(table_1_exports) = 1.35
+width(table_2_imports) = 1.35
+
+# Export the tables to word
+
+table_1_exports_docx = as_flextable(table_1_exports)
+save_as_docx(table_1_exports_docx, path = "table_1_exports.docx")
+
+table_2_imports_docx = as_flextable(table_2_imports)
+save_as_docx(table_2_imports_docx, path = "table_2_imports.docx")
 ```
 
 ## 4. Japan's world trade partners
@@ -623,7 +651,6 @@ dev.off()
 # Notes
 
 (1) Review format of tables in Japan exports and imports to and from ASEAN countries.
-(2) Graph with main trading partners for Japan-ASEAN?
 (3) Tables -> add one line with the evolution of trade between 2000 and 2012 (%)
 (5) Graph Adèle!!
 
