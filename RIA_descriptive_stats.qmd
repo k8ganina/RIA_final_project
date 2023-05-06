@@ -651,7 +651,5 @@ dev.off()
 # Notes
 
 (1) Review format of tables in Japan exports and imports to and from ASEAN countries.
-(3) Tables -> add one line with the evolution of trade between 2000 and 2012 (%)
-(5) Graph Adèle!!
 
 
