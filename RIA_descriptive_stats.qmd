@@ -145,7 +145,7 @@ trade_japan <- subset(asean_selected_rta, iso3_d=="JPN" | iso3_o=="JPN") %>%
 fig_1 <- ggplot(trade_japan, aes(x = year, y = total_trade/1000000)) +
   geom_line() +
   geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
-  labs(title = "Figure 1: Japan's total level of trade from 1965 to 2020 \n(in thousands of current USD)", x = "Year", y = "Total trade (in million)") +
+  labs(title = "Figure 1: Japan's total trade from 1965 to 2020 \n(in thousands of current USD)", x = "Year", y = "Total trade (in million)") +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_x_continuous(breaks = seq(1968, 2018, 10), limits = c(1965, 2020))
