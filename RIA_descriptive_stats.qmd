@@ -412,20 +412,20 @@ japan_imports
 ```{r}
 # We create a table with Japan's total levels of imports and exports from and to each ASEAN country both in 2000 and 2012.
 
-table_1_exports <- as_hux(japan_exports) %>%
-  set_caption("Table 1: Japan level of export to each ASEAN country in 2000 and 2012\n") %>%
+table_2_exports <- as_hux(japan_exports) %>%
+  set_caption("Table 2: Japan level of export to each ASEAN country in 2000 and 2012\n(in thousands of current USD)") %>%
   set_align(everywhere,-1,"center") %>%
   set_top_border(2, everywhere) %>%
   set_right_border(everywhere, 1) %>%
   set_bottom_border(3, everywhere) %>%
   set_number_format(-1, -1, fmt_pretty(digits=1)) %>%
   set_font_size(7.5) %>%
-  set_label("table_1_exports")
+  set_label("table_2_exports")
 
-table_1_exports
+table_2_exports
 
-table_2_imports <- as_hux(japan_imports) %>%
-  set_caption("Table 2: Japan level of import from each ASEAN country in 2000 and 2012\n") %>%
+table_1_imports <- as_hux(japan_imports) %>%
+  set_caption("Table 1: Japan level of import from each ASEAN country in 2000 and 2012\n(in thousands of current USD)") %>%
   set_align(everywhere,-1,"center") %>%
   set_top_border(2, everywhere) %>%
   set_right_border(everywhere, 1) %>%
@@ -433,20 +433,20 @@ table_2_imports <- as_hux(japan_imports) %>%
   set_bottom_border_style("double") %>%
   set_number_format(-1, -1, fmt_pretty(digits=1)) %>%
   set_font_size(7.5) %>%
-  set_label("table_2_imports")
+  set_label("table_1_imports")
 
-table_2_imports
+table_1_imports
 
-width(table_1_exports) = 1.35
-width(table_2_imports) = 1.35
+width(table_2_exports) = 1.3
+width(table_1_imports) = 1.3
 
 # Export the tables to word
 
-table_1_exports_docx = as_flextable(table_1_exports)
-save_as_docx(table_1_exports_docx, path = "table_1_exports.docx")
+table_2_exports_docx = as_flextable(table_2_exports)
+save_as_docx(table_2_exports_docx, path = "table_2_exports.docx")
 
-table_2_imports_docx = as_flextable(table_2_imports)
-save_as_docx(table_2_imports_docx, path = "table_2_imports.docx")
+table_1_imports_docx = as_flextable(table_1_imports)
+save_as_docx(table_1_imports_docx, path = "table_1_imports.docx")
 ```
 
 ## 4. Japan's world trade partners
