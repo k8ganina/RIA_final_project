@@ -931,10 +931,10 @@ asean_selected_rta = asean_selected_rta %>%
 ## Estimation
 
 #endogeneity
-rta_lead_asean = feols(ln_tradeflow_comtrade_d ~  rta_excl_asean_plus + rta_excl_asean_plus_lead3 + rta_asean_plus + rta_asean_plus_lead3 |
-                  fe_exp_year + fe_imp_year + pair_id,
-                  data = asean_selected_rta, 
-                  vcov = cluster ~ pair_id)
+# rta_lead_asean = feols(ln_tradeflow_comtrade_d ~  rta_excl_asean_plus + rta_excl_asean_plus_lead3 + rta_asean_plus + rta_asean_plus_lead3 |
+#                   fe_exp_year + fe_imp_year + pair_id,
+#                   data = asean_selected_rta, 
+#                   vcov = cluster ~ pair_id)
 
 #rta should be significant, but rta_lead3 NOT - this way we will correctly control for reverse causality
 
@@ -1020,47 +1020,5 @@ asean_selected_rta = asean_selected_rta %>%
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-TRIALS (NOT MAIN CODE)
-
-```{r}
-class(data_asean_selected$rta_type)
-table(data_asean_selected$rta)
-```
-
-```{r}
-table(data_asean_selected$country_id_d, data_asean_selected$country_exists_d)
-asean_selected_tradit %>% filter(wto_o == 1)
-```
-
-```{r}
-sum(is.na(asean_selected_tradit$Y_it))
-colSums(is.na(asean_selected_tradit))
-```
-
-
- Descriptive statistics
-Full Sample
-```{r}
-dim(data_asean_selected)[1] #number of observations
-table(data_asean_selected$rta)[2] #number of observations for RTA
-
-```
-
-Sample with 3 year intervals
-```{r}
-dim(asean_selected_rta)[1] #number of observations
-table(asean_selected_rta$rta)[2] #number of observations for RTA
-```
 
 
