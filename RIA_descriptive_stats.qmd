@@ -602,7 +602,7 @@ fig_5 <- ggplot(top_exports_2000_sum, aes(x = "", y = share_japan_exports, fill 
   theme_void() +
   theme(legend.position = "left", legend.title = element_text(size = 12), legend.text=element_text(size=11)) +
   geom_text(aes(label = paste0(round(share_japan_exports, 2), "%")), 
-            position = position_stack(vjust = 0.5), size = 3.5) +
+            position = position_stack(vjust = 0.5), size = 4) +
   scale_fill_manual(name = "Country", values = colors5,
                     labels = c("China", "Hong Kong", "South Korea", "Others", "Taiwan", "United States"))
 
@@ -632,15 +632,17 @@ top_exports_2012_sum <- exports_japan_world %>%
 
 # We plot a graph (pie chart) for 2012.
 
+colors6 <- c("#F25050", "lightgreen","#DDDDDD","#FF9966","#B680B2","lightblue")
+
 fig_6 <- ggplot(top_exports_2012_sum, aes(x = "", y = share_japan_exports, fill = iso3_d)) + 
   geom_bar(width = 1, stat = "identity") +
   coord_polar(theta = "y") +
   labs(title = "Figure 6: Main export destinations of Japan in 2012", fill = "Country", x = NULL, y = NULL) +
   theme_void() +
-  theme(legend.position = "left") +
+  theme(legend.position = "left", legend.title = element_text(size = 12), legend.text=element_text(size=11)) +
   geom_text(aes(label = paste0(round(share_japan_exports, 2), "%")), 
-            position = position_stack(vjust = 0.5), size = 3.5) +
-  scale_fill_manual(name = "Country", values = brewer.pal(6, "Paired"),
+            position = position_stack(vjust = 0.5), size = 4) +
+  scale_fill_manual(name = "Country", values = colors6,
                     labels = c("China", "South Korea", "Others", "Thailand", "Taiwan", "United States"))
 
 fig_6
