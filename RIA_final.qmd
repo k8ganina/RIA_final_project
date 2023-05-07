@@ -1,7 +1,13 @@
 ---
 title: "RIA final project - Evolution of Japan’s trade flows after signing the ASEAN+1 agreement on Comprehensive Economic-Partnership in 2008."
-author: "Kateryna Hanina"
-format: html
+author: "Kateryna Hanina, Gaelle Debree, Adele Verron"
+toc: true
+toc-location: body
+format:
+  html:
+    code-fold: false
+    self-contained: true
+    page-layout: full
 ---
 
 Countries (11): Brunei (BRN), Cambodia (KHM), Indonesia (IDN), Laos (LAO), Malaysia (MYS), Myanmar (MMR), Philippines (PHL), Singapore (SGP), Thailand (THA), Vietnam (VNM), Japan (JPN).
@@ -94,496 +100,12 @@ data_asean_selected <- data_asean_selected %>%
          rta_asean_plus_j_a = case_when((year>=2008 & iso3_o=="JPN" & asean_ms_d==1 ~ 1), TRUE ~ 0))
 ```
 
-# 1. Traditional Gravity Estimates
-
-## Create necessary data
-
-```{r}
-# Select necessary years with 3 year intervals
-asean_selected_tradit <- data_asean_selected %>%
-  filter(year %in% seq(1965, 2020, 3))
-```
-
-```{r}
-# Construct symmetric pair id's for exporter and importer
-asean_selected_tradit <- asean_selected_tradit %>%
-  mutate(pair = paste(pmin(iso3_o,iso3_d),pmax(iso3_o,iso3_d),sep = "_")) %>%
-  group_by(pair) %>%
-  mutate(pair_id = cur_group_id())
-```
-
-```{r}
-# Construct exporter output and importer expenditure
-#(is it GDPs?? Do we need to calculate them or can use gdp_o and gdp_d?)
-# asean_selected_tradit <- asean_selected_tradit %>%
-#   group_by(iso3_o,year) %>%
-#   mutate(Y_it = sum(tradeflow_comtrade_d)) %>%
-#   group_by(iso3_d,year) %>%
-#   mutate(E_jt = sum(tradeflow_comtrade_d))
-```
-
-We have problems with zeroes here, we get -inf in logged columns. But should be fine if we specify in estimation that tradeflows\>0 for traditional estimates
-
-```{r}
-# calculate logs
-# asean_selected_tradit <- asean_selected_tradit %>%
-#   mutate(across(c(tradeflow_comtrade_d, Y_it, E_jt, dist, gdp_o, gdp_d), ~log(.x), .names="ln_{.col}"))
-```
-
-```{r}
-# calculate logs
-asean_selected_tradit <- asean_selected_tradit %>%
-  mutate(across(c(tradeflow_comtrade_d, dist, gdp_o, gdp_d), ~log(.x), .names="ln_{.col}"))
-```
-
-## 1.1 Naive gravity estimation
-
-```{r}
-# Estimation with feols, which allows for FE and clusters
-
-# without controlling for WTO, GATT and RTAs and with true gdp_o and gdp_d
-fit_ols2 <- feols(ln_tradeflow_comtrade_d ~ ln_dist + ln_gdp_o + ln_gdp_d + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig,
-                data = asean_selected_tradit %>%
-                  filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d), 
-                vcov = cluster ~ pair_id)
-summary(fit_ols2) 
-```
-
-## 1.2. Proxy for MRT
-
-```{r}
-## Calculate remoteness indices - Should we use true GDP or proxies for remoteness indices?
-asean_selected_tradit = asean_selected_tradit %>%
-  filter(gdp_o > 0 & gdp_d > 0) %>%
-  group_by(year) %>%
-  mutate(Y_t = sum(gdp_o), E_t = sum(gdp_d)) %>%
-  group_by(iso3_o, year) %>%
-  mutate(remoteness_exp = sum(dist /(gdp_d / E_t))) %>%
-  group_by(iso3_d, year) %>%
-  mutate(remoteness_imp = sum(dist / (gdp_o / Y_t))) %>%
-  mutate(ln_remoteness_exp = log(remoteness_exp), 
-         ln_remoteness_imp = log(remoteness_imp))
-
-
-##Estimation
-fit_remoteness = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + ln_gdp_o + ln_gdp_d + ln_remoteness_exp + ln_remoteness_imp,
-                       data = asean_selected_tradit %>% filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
-                       vcov = cluster ~ pair_id)
-summary(fit_remoteness) 
-```
-
-## 1.3. Fixed Effects
-
-```{r}
-## Create fixed effects 
-asean_selected_tradit = asean_selected_tradit %>%
-     unite("fe_exp_year",c(iso3_o,year),sep="_",remove=FALSE) %>%
-     unite("fe_imp_year",c(iso3_d,year),sep="_",remove=FALSE) %>%
-     relocate(c(fe_exp_year,fe_imp_year), .after = 5)#in order to make it clear in the table
-
-## Estimation 
-fit_fixedeffects = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both |
-                           fe_exp_year + fe_imp_year,
-                         data = asean_selected_tradit %>% filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
-                         vcov = cluster ~ pair_id)
-summary(fit_fixedeffects) 
-# Why do we get this negative coefficient for comleg_posttrans? Especially because the one for comleg_pretrans is positive..
-```
-
-## 1.4. PPML with FE
-
-```{r}
-## PPML model
-fit_poisson = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both |
-                           fe_exp_year + fe_imp_year,
-                     data = asean_selected_tradit %>% filter(iso3_o != iso3_d),
-                     vcov = cluster ~ pair_id)
-summary(fit_poisson)
-```
-
-## Overview
-```{r}
-table_tradit <- huxreg("  " = fit_ols2,
-                       "with MRT" = fit_remoteness,
-                       "with FE" = fit_fixedeffects,
-                       " " = fit_poisson,
-                       coefs = c("Intercept" = "(Intercept)",
-                                 "Log exporter GDP" = "ln_gdp_o",
-                                 "Log importer GDP" = "ln_gdp_d",
-                                 "Log distance" = "ln_dist",
-                                 "Language" = "comlang_off",
-                                 "Colonizer" = "comcol",
-                                 "Colonial relation" = "col45",
-                                 "Legal origins before 1991" = "comleg_pretrans",
-                                 "Legal origins after 1991" = "comleg_posttrans",
-                                 "Religion" = "comrelig",
-                                 "GATT/WTO" = "gatt_wto_both",
-                                 "Exporter remoteness" = "ln_remoteness_exp",
-                                 "Importer remoteness" = "ln_remoteness_imp"),
-                       number_format = 3,
-                       statistics = c("N"="nobs", "R^2"="r.squared", "pseudo R^2"="pseudo.r.squared"),
-                       note = "Notes: Statistics based on author's calculations. All estimates are obtained with data for the period from 1965 to 2020 with 3-year intervals. Standard errors are clustered by country pair and are reported in parentheses. {stars}") %>%
-  insert_row("", "(1) OLS", "(2) OLS", "(3) OLS", "(4) PPML", after = 0) %>%
-  insert_row(c("Fixed Effects", "No", "No", "Yes", "Yes"), after = 29) %>%
-  set_col_width(c(0.3,rep(0.9/4,4))) %>%
-  set_align(everywhere,-1,"center") %>%
-  set_top_border(1,everywhere,1) %>%
-  set_bottom_border(29,everywhere,0) %>%
-  set_tb_padding(0) %>%
-  set_caption("Traditional Gravity Estimates") %>%
-  set_label("table_tradit")
-table_tradit
-```
-```{r}
-width(table_tradit) = 1 #Set relative table width for use in documents
-
-## Export table to word
-table_tradit_docx = as_flextable(table_tradit)
-save_as_docx(table_tradit_docx, path = "table_tradit.docx")
-```
-
-
-
-# 2. Estimates of RTAs (general RTA, not ASEAN specific)
-
-## Create necessary data
-
-```{r}
-# Select necessary years with 3 year intervals
-asean_selected_rta <- data_asean_selected %>%
-  filter(year %in% seq(1965, 2020, 3))
-```
-
-```{r}
-# Construct symmetric pair id's for exporter and importer
-asean_selected_rta <- asean_selected_rta %>%
-  mutate(pair = paste(pmin(iso3_o,iso3_d),pmax(iso3_o,iso3_d),sep = "_")) %>%
-  group_by(pair) %>%
-  mutate(pair_id = cur_group_id())
-```
-
-```{r}
-# calculate logs
-asean_selected_rta <- asean_selected_rta %>%
-  mutate(across(c(tradeflow_comtrade_d, dist), ~log(.x), .names="ln_{.col}"))
-```
-
-```{r}
-## Create fixed effects 
-asean_selected_rta = asean_selected_rta %>%
-     unite("fe_exp_year",c(iso3_o,year),sep="_",remove=FALSE) %>%
-     unite("fe_imp_year",c(iso3_d,year),sep="_",remove=FALSE) %>%
-     relocate(c(fe_exp_year,fe_imp_year), .after = 5)#in order to make it clear in the table
-```
-
-```{r}
-## Specify country-specific intra-national trade dummies
-asean_selected_rta = asean_selected_rta %>%
-mutate(D_trade_ii = ifelse(iso3_o==iso3_d,iso3_o,"international"))
-```
-
-## 2.1. Traditional estimates of RTAs (OLS)
-
-```{r}
-## OLS estimation
-rta_ols = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + rta + gatt_wto_both |
-                           fe_exp_year + fe_imp_year,
-data = asean_selected_rta %>%
-filter(ln_tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
-vcov = cluster ~ pair_id)
-
-summary(rta_ols)
-```
-
-
-
-## 2.2. Traditional estimates of RTAs (PPML)
-```{r}
-rta_poisson = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + rta + gatt_wto_both |
-                           fe_exp_year + fe_imp_year,
-data = asean_selected_rta %>%
-filter(iso3_o != iso3_d),
-vcov = cluster ~ pair_id)
-
-summary(rta_poisson)
-```
-
-### we can also estimate regression where we split RTA in types after we select the preffered specification
-```{r}
-#see amount of observations by type of RTA
-table(asean_selected_rta$rta_type)
-
-rta_poisson_types = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + as.factor(rta_type) + gatt_wto_both |
-                           fe_exp_year + fe_imp_year,
-data = asean_selected_rta %>%
-filter(iso3_o != iso3_d),
-vcov = cluster ~ pair_id)
-
-summary(rta_poisson_types)
-
-# is it ok that some RTAs have negative effects? --- maybe we need to exclude combined types of RTA?
-#type 3 (EIA) might be negative due to only 56 observations in the whole dataset, so it's not significant
-#type 7 (PSA&EIA) might be negative due to less deep integration in Partial Scope Agreements (and it's also only 471 observations in total)
-```
-
-
-
-## 2.3. Allowing for trade diversion from domestic sales (includes FE for intra-trade)
-```{r}
-## PPML estimation
-rta_poisson_intra = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + rta + gatt_wto_both |
-                           fe_exp_year + fe_imp_year + D_trade_ii,
-data = asean_selected_rta,
-vcov = cluster ~ pair_id)
-
-summary(rta_poisson_intra)
-```
-
-
-
-## 2.4. Addressing potential endogeneity of RTAs
-```{r}
-## PPML estimation
-rta_endo = fepois(tradeflow_comtrade_d ~ rta + gatt_wto_both |
-fe_exp_year + fe_imp_year + pair_id,
-data = asean_selected_rta,
-vcov = cluster ~ pair_id)
-
-## Head of results
-head(asean_selected_rta[-rta_endo$obs_selection$obsRemoved,
-                        c("iso3_o","iso3_d","year","tradeflow_comtrade_d")] %>%
-       arrange(iso3_o,iso3_d,year),3)
-
-summary(rta_endo)
-#rta coeff should be significant, why it's NOT???
-```
-
-## Overview
-```{r}
-table_rta <- huxreg("RTA" = rta_ols,
-                    "RTA " = rta_poisson,
-                    "RTA types" = rta_poisson_types,
-                    "Intra-trade" = rta_poisson_intra,
-                    "Endogeneity" = rta_endo,
-                    coefs = c("Log distance" = "ln_dist",
-                              "Language" = "comlang_off",
-                              "Colonizer" = "comcol",
-                              "Colonial relation" = "col45",
-                              "Legal origins before 1991" = "comleg_pretrans",
-                              "Legal origins after 1991" = "comleg_posttrans",
-                              "Religion" = "comrelig",
-                              "RTA" = "rta",
-                              "GATT/WTO" = "gatt_wto_both",
-                              "CU" = "as.factor(rta_type)1",
-                              "CU & EIA" = "as.factor(rta_type)2",
-                              "EIA" = "as.factor(rta_type)3",
-                              "FTA" = "as.factor(rta_type)4",
-                              "FTA & EIA" = "as.factor(rta_type)5",
-                              "PSA & EIA" = "as.factor(rta_type)7"),
-                    number_format = 3,
-                    statistics = c("N"="nobs", "R^2"="r.squared", "pseudo R^2"="pseudo.r.squared"),
-                    note = "Notes: Statistics based on author's calculations. All estimates are obtained with data for the period from 1965 to 2020 with 3-year intervals. Standard errors are clustered by country pair and are reported in parentheses. {stars}") %>%
-  insert_row("","(1) OLS", "(2.1) PPML", "(2.2) PPML", "(3) PPML", "(4) PPML", after = 0) %>%
-  insert_row(c("Intra-national trade", "No", "No", "No", "Yes", "Yes"), after = 33) %>%
-  set_col_width(c(0.3,rep(0.9/5,5))) %>%
-  set_align(everywhere,-1,"center") %>%
-  set_top_border(1,everywhere,1) %>%
-  set_tb_borders(34,everywhere,0) %>%
-  set_tb_padding(0) %>%
-  set_caption("Estimating General Effects of All Regional Trade Agreements") %>%
-  set_label("table_rta")
-table_rta
-```
-
-```{r}
-width(table_rta) = 1 #Set relative table width for use in documents
-## Export table to word
-table_rta_docx = as_flextable(table_rta)
-save_as_docx(table_rta_docx, path = "table_rta.docx")
-```
-
-# 3. Estimates of RTAs (ASEAN specific)
-
-## Create necessary data
-
-```{r}
-#---create different columns for separating ASEAN dummy from general rta and rta_type -- needs to be set to 0 if manually created ASEAN dummy for Japan=1:
-
-#adjust variables rta and rta_type by setting them to 0 if rta_asean_plus=1, so we don't duplicate when use both all RTA for RoW and specific Japan-ASEAN RTA in the regression
-asean_selected_rta <- asean_selected_rta %>%
-  mutate(rta_excl_asean_plus = if_else(rta_asean_plus==1, 0, as.numeric(rta)),#general counterfactual
-         rta_type_excl_asean_plus = if_else(rta_asean_plus==1, 0, as.numeric(rta_type))) #specific counterfactual
-
-#based on adjusted rta_type segregate agreements of Japan in different types of RTA if Japan is in origin or destination
-asean_selected_rta <- asean_selected_rta %>%
-  mutate(jpn_cu = if_else((rta_type_excl_asean_plus==1 & iso3_o=="JPN") | (rta_type_excl_asean_plus==1 & iso3_d=="JPN"), 1, 0),
-         jpn_cu_eia = if_else((rta_type_excl_asean_plus==2 & iso3_o=="JPN") | (rta_type_excl_asean_plus==2 & iso3_d=="JPN"), 1, 0),
-         jpn_eia = if_else((rta_type_excl_asean_plus==3 & iso3_o=="JPN") | (rta_type_excl_asean_plus==3 & iso3_d=="JPN"), 1, 0),
-         jpn_fta = if_else((rta_type_excl_asean_plus==4 & iso3_o=="JPN") | (rta_type_excl_asean_plus==4 & iso3_d=="JPN"), 1, 0),
-         jpn_fta_eia = if_else((rta_type_excl_asean_plus==5 & iso3_o=="JPN") | (rta_type_excl_asean_plus==5 & iso3_d=="JPN"), 1, 0),
-         jpn_psa_eia = if_else((rta_type_excl_asean_plus==7 & iso3_o=="JPN") | (rta_type_excl_asean_plus==7 & iso3_d=="JPN"), 1, 0))
-
-
-#again adjust rta_type by setting them to 0 if member of ANY type of agreement is Japan,
-#if not, then keep adjusted rta_type from the 1st step. This way we will not duplicate them in the regression when use variables specifically for Japan and for RoW (namely, when we use in regression Japan-ASEAN, Japan in all types of RTAs with RoW, and all types of RTAs between other countries in RoW)
-asean_selected_rta <- asean_selected_rta %>%
-  mutate(rta_type_all_clean = if_else((jpn_cu==1) | (jpn_cu_eia==1) | (jpn_eia==1) | (jpn_fta==1) | (jpn_fta_eia==1) | (jpn_psa_eia==1), 0, as.numeric(rta_type_excl_asean_plus)))
-```
-
-
-## 3.1. Traditional estimates of RTAs (OLS)
-
-```{r}
-## OLS estimation
-rta_ols_asean = feols(ln_tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both + rta_excl_asean_plus + rta_asean_plus |
-                           fe_exp_year + fe_imp_year,
-data = asean_selected_rta %>%
-filter(ln_tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
-vcov = cluster ~ pair_id)
-
-summary(rta_ols_asean)
-```
-
-## 3.2. Traditional estimates of RTAs (PPML)
-```{r}
-rta_poisson_asean = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both + rta_excl_asean_plus + rta_asean_plus |
-                           fe_exp_year + fe_imp_year,
-data = asean_selected_rta %>%
-filter(iso3_o != iso3_d),
-vcov = cluster ~ pair_id)
-
-summary(rta_poisson_asean)
-```
-### we can also estimate regression where we split RTA in types after we select the preffered specification
-```{r}
-#see amount of observations by type of RTA
-table(asean_selected_rta$rta_type)
-
-rta_poisson_types_asean = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both + as.factor(rta_type_excl_asean_plus) + rta_asean_plus |
-                           fe_exp_year + fe_imp_year,
-data = asean_selected_rta %>%
-filter(iso3_o != iso3_d),
-vcov = cluster ~ pair_id)
-
-summary(rta_poisson_types_asean)
-
-#type 3 (EIA) might be negative due to only 56 observations in the whole dataset, so it's not significant
-#type 7 (PSA&EIA) might be negative due to less deep integration in Partial Scope Agreements (and it's also only 471 observations in total)
-```
-
-### adding variables for all 7 types of RTAs Japan is part of
-```{r}
-rta_poisson_jpntypes_asean = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both + rta_asean_plus + jpn_cu + jpn_cu_eia + jpn_eia + jpn_fta + jpn_fta_eia + jpn_psa_eia + as.factor(rta_type_all_clean) |
-                           fe_exp_year + fe_imp_year,
-data = asean_selected_rta %>%
-filter(iso3_o != iso3_d),
-vcov = cluster ~ pair_id)
-
-summary(rta_poisson_jpntypes_asean)
-```
-
-
-## 3.3. Allowing for trade diversion from domestic sales (includes FE for intra-trade)
-```{r}
-## PPML estimation
-rta_poisson_intra_asean = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both + rta_excl_asean_plus + rta_asean_plus |
-                           fe_exp_year + fe_imp_year + D_trade_ii,
-data = asean_selected_rta,
-vcov = cluster ~ pair_id)
-
-summary(rta_poisson_intra_asean)
-```
-
-### adding variables for all 7 types of RTAs Japan is part of
-```{r}
-rta_poisson_jpntypes_intra_asean = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both + rta_asean_plus + jpn_cu + jpn_cu_eia + jpn_eia + jpn_fta + jpn_fta_eia + jpn_psa_eia + as.factor(rta_type_all_clean) |
-                           fe_exp_year + fe_imp_year + D_trade_ii,
-data = asean_selected_rta,
-vcov = cluster ~ pair_id)
-
-summary(rta_poisson_jpntypes_intra_asean)
-```
-
-
-## 3.4. Addressing potential endogeneity of RTAs
-```{r}
-## PPML estimation
-rta_endo_asean = fepois(tradeflow_comtrade_d ~ gatt_wto_both + rta_excl_asean_plus + rta_asean_plus |
-fe_exp_year + fe_imp_year + pair_id,
-data = asean_selected_rta,
-vcov = cluster ~ pair_id)
-
-summary(rta_endo_asean)
-#rta coeff should be significant, why it's NOT???
-```
-
-### adding variables for all 7 types of RTAs Japan is part of
-```{r}
-rta_jpntypes_endo_asean = fepois(tradeflow_comtrade_d ~ gatt_wto_both + rta_asean_plus + jpn_cu + jpn_cu_eia + jpn_eia + jpn_fta + jpn_fta_eia + jpn_psa_eia + as.factor(rta_type_all_clean) |
-fe_exp_year + fe_imp_year + pair_id,
-data = asean_selected_rta,
-vcov = cluster ~ pair_id)
-
-summary(rta_jpntypes_endo_asean)
-#rta coeff should be significant, why it's NOT???
-```
-
-## Overview
-```{r}
-table_rta_asean <- huxreg("RTA" = rta_ols_asean,
-                    "RTA " = rta_poisson_asean,
-                    "RTA, types" = rta_poisson_jpntypes_asean,
-                    "INTRA" = rta_poisson_intra_asean,
-                    "INTRA, types" = rta_poisson_jpntypes_intra_asean,
-                    "ENDG" = rta_endo_asean,
-                    "ENDG, types" = rta_jpntypes_endo_asean,
-                    coefs = c("Log distance" = "ln_dist",
-                              "Language" = "comlang_off",
-                              "Colonizer" = "comcol",
-                              "Colonial relation" = "col45",
-                              "Legal origins before 1991" = "comleg_pretrans",
-                              "Legal origins after 1991" = "comleg_posttrans",
-                              "Religion" = "comrelig",
-                              "GATT/WTO" = "gatt_wto_both",
-                              "RTA ASEAN-Japan" = "rta_asean_plus",
-                              "RTA in RoW" = "rta_excl_asean_plus",
-                              "Japan in FTA & EIA" = "jpn_fta_eia",
-                              "CU in RoW" = "as.factor(rta_type_all_clean)1",
-                              "CU & EIA in RoW" = "as.factor(rta_type_all_clean)2",
-                              "EIA in RoW" = "as.factor(rta_type_all_clean)3",
-                              "FTA in RoW" = "as.factor(rta_type_all_clean)4",
-                              "FTA & EIA in RoW" = "as.factor(rta_type_all_clean)5",
-                              "PSA & EIA in RoW" = "as.factor(rta_type_all_clean)7"),
-                    number_format = 3,
-                    statistics = c("N"="nobs", "R^2"="r.squared", "pseudo R^2"="pseudo.r.squared"),
-                    note = "Notes: Statistics based on author's calculations. All estimates are obtained with data for the period from 1965 to 2020 with 3-year intervals. Standard errors are clustered by country pair and are reported in parentheses. {stars}") %>%
-  insert_row("","(1) OLS", "(2.1) PPML", "(2.2) PPML", "(3) PPML", "(3.1) PPML", "(4) PPML", "(4.1) PPML", after = 0) %>%
-  insert_row(c("Intra-national trade", "No", "No", "No", "Yes", "Yes", "Yes", "Yes"), after = 37) %>%
-  insert_row(c("Japan in other RTAs", "No", "No", "Yes", "No", "Yes", "No", "Yes"), after = 38) %>%
-  set_col_width(c(0.3,rep(0.9/7,7))) %>%
-  set_align(everywhere,-1,"center") %>%
-  set_top_border(1,everywhere,1) %>%
-  set_tb_borders(33,everywhere,0) %>%
-  set_tb_padding(0) %>%
-  set_caption("Estimating General Effects of Japan's ASEAN+1 Agreement Compared to All Regional Trade Agreements") %>%
-  set_label("table_rta_asean")
-table_rta_asean
-```
-
-```{r}
-width(table_rta_asean) = 1 #Set relative table width for use in documents
-## Export table to word
-table_rta_asean_docx = as_flextable(table_rta_asean)
-save_as_docx(table_rta_asean_docx, path = "table_rta_asean.docx")
-```
-
-
 
 #-----------------------
 
-# 4. All steps - Estimates of RTAs (ASEAN specific)
+# All steps - Estimates of RTAs (ASEAN specific)
 
-## 4.1.Naive gravity
+## 1.Naive gravity
 
 ### Data
 ```{r}
@@ -643,7 +165,7 @@ summary(rta_fit_ols)
 ```
 
 
-## 4.2. Proxy for MRT
+## 2. Proxy for MRT
 
 ### Data
 ```{r}
@@ -668,7 +190,7 @@ summary(rta_fit_remoteness)
 ```
 
 
-## 4.3. Fixed Effects - Traditional estimates of RTAs
+## 3. Fixed Effects - Traditional estimates of RTAs
 
 ### Data
 ```{r}
@@ -689,7 +211,7 @@ summary(rta_fit_fixedeffects)
 ```
 
 
-## 4.4. Traditional estimates of RTAs
+## 4. Traditional estimates of RTAs
 
 ### PPML Estimation
 ```{r}
@@ -702,7 +224,7 @@ summary(rta_poisson)
 ```
 
 
-## 4.5. Allowing for trade diversion from domestic sales (includes FE for intra-trade)
+## 5. Allowing for trade diversion from domestic sales (includes FE for intra-trade)
 
 ### Data
 ```{r}
@@ -767,11 +289,35 @@ fig_rta_types <- modelplot(rta_poisson_intra_all, coef_map = c("rta_asean_plus_a
   scale_color_manual(values = c("grey", "black")) +
   geom_vline(xintercept = 0, color = 'orange')
 
+fig_rta_types
+
 #caption = "All coefficients are estimated with PPML including intra-trade as in specification (4) after replacing the vector of RTA with different RTA types and specifying direction of exports for ASEAN+1 RTA"
+```
+## 6. Testing for potential reverse causality between trade and RTAs
+```{r}
+## Identify future RTAs with custom function
+asean_selected_rta = asean_selected_rta %>%
+  group_by(iso3_o,iso3_d) %>%
+  mutate(rta_excl_asean_plus_lead3 = tlead(rta_excl_asean_plus,n=3,along_with = year),
+         rta_asean_plus_lead3 = tlead(rta_asean_plus, n=3, along_with = year),
+         rta_excl_asean_plus_lead6 = tlead(rta_excl_asean_plus,n=6,along_with = year),
+         rta_asean_plus_lead6 = tlead(rta_asean_plus, n=6, along_with = year),
+         rta_excl_asean_plus_lead9 = tlead(rta_excl_asean_plus,n=9,along_with = year),
+         rta_asean_plus_lead9 = tlead(rta_asean_plus, n=9, along_with = year))
+```
+
+```{r}
+#PPML with intra
+rta_lead_asean = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both + rta_excl_asean_plus + rta_asean_plus + rta_excl_asean_plus_lead3 +rta_asean_plus_lead3 |
+                           fe_exp_year + fe_imp_year + D_trade_ii,
+                           data = asean_selected_rta,
+                           vcov = cluster ~ pair_id)
+
+summary(rta_lead_asean)
 ```
 
 
-## 4.6. Addressing potential endogeneity of RTAs 
+## 7. Addressing potential endogeneity of RTAs (to correct for reverse causality)
 
 ### PPML Estimation
 ```{r}
@@ -781,11 +327,12 @@ rta_poisson_endo = fepois(tradeflow_comtrade_d ~ gatt_wto_both + rta_excl_asean_
                         vcov = cluster ~ pair_id)
 
 summary(rta_poisson_endo)
-#rta coeff should be significant, why it's NOT???
+#all rta coeff insignificant, some problem in dataset --> try OLS
 ```
 
 ### OLS Estimation
 ```{r}
+#for general RTAs
 rta_ols_endo = feols(ln_tradeflow_comtrade_d ~ gatt_wto_both + rta_excl_asean_plus + rta_asean_plus |
                           fe_exp_year + fe_imp_year + pair_id,
                         data = asean_selected_rta %>% filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
@@ -793,6 +340,17 @@ rta_ols_endo = feols(ln_tradeflow_comtrade_d ~ gatt_wto_both + rta_excl_asean_pl
 
 summary(rta_ols_endo)
 #RTA for ASEAN not signifficant, only significant for RoW
+
+
+
+#for all types of RTAs
+rta_ols_endo_det = feols(ln_tradeflow_comtrade_d ~ gatt_wto_both + rta_asean_plus_a_j + rta_asean_plus_j_a + jpn_cu + jpn_cu_eia + jpn_eia + jpn_fta + jpn_fta_eia + jpn_psa_eia + as.factor(rta_type_all_clean) |
+                          fe_exp_year + fe_imp_year + pair_id,
+                        data = asean_selected_rta %>% filter(tradeflow_comtrade_d > 0 & iso3_o != iso3_d),
+                        vcov = cluster ~ pair_id)
+
+summary(rta_ols_endo_det)
+
 ```
 
 
@@ -802,7 +360,7 @@ table_asean_steps <- huxreg("Naive" = rta_fit_ols,
                     "MRT" = rta_fit_remoteness,
                     "FE" = rta_fit_fixedeffects,
                     "INTRA" = rta_poisson_intra,
-                    "ENDG" = rta_poisson_endo,
+                    "RVRS" = rta_lead_asean,
                     "ENDG " = rta_ols_endo,
                     coefs = c("Intercept" = "(Intercept)",
                               "Log exporter GDP" = "ln_gdp_o",
@@ -817,65 +375,91 @@ table_asean_steps <- huxreg("Naive" = rta_fit_ols,
                               "Legal origins after 1991" = "comleg_posttrans",
                               "Religion" = "comrelig",
                               "GATT/WTO" = "gatt_wto_both",
+                              "RTA in RoW" = "rta_excl_asean_plus",
                               "RTA ASEAN-Japan" = "rta_asean_plus",
-                              "RTA in RoW" = "rta_excl_asean_plus"),
-                              #"Japan in FTA & EIA" = "jpn_fta_eia",
-                              #"CU in RoW" = "as.factor(rta_type_all_clean)1",
-                              #"CU & EIA in RoW" = "as.factor(rta_type_all_clean)2",
-                              #"EIA in RoW" = "as.factor(rta_type_all_clean)3",
-                              #"FTA in RoW" = "as.factor(rta_type_all_clean)4",
-                              #"FTA & EIA in RoW" = "as.factor(rta_type_all_clean)5",
-                              #"PSA & EIA in RoW" = "as.factor(rta_type_all_clean)7"),
+                              "RTA in RoW(t+3)" = "rta_excl_asean_plus_lead3",
+                              "RTA ASEAN-Japan(t+3)" = "rta_asean_plus_lead3"),
                     number_format = 3,
                     statistics = c("N"="nobs", "R^2"="r.squared", "pseudo R^2"="pseudo.r.squared"),
                     note = "Notes: Statistics based on author's calculations. All estimates are obtained with data for the period from 1965 to 2020 with 3-year intervals. Standard errors are clustered by country pair and are reported in parentheses. {stars}") %>%
   insert_row("","(1) OLS", "(2) OLS", "(3) OLS", "(4) PPML", "(5) PPML", "(6) OLS", after = 0) %>%
-  insert_row(c("Fixed Effects", "No", "No", "Yes", "Yes", "Yes", "Yes"), after = 33) %>%
-  insert_row(c("Intra-national trade", "No", "No", "No", "Yes", "No", "No"), after = 34) %>%
+  insert_row(c("Fixed Effects", "No", "No", "Yes", "Yes", "Yes", "Yes"), after = 37) %>%
+  insert_row(c("Intra-national trade", "No", "No", "No", "Yes", "Yes", "No"), after = 38) %>%
   #insert_row(c("Japan in other RTAs", "No", "No", "Yes", "No", "Yes", "No", "Yes"), after = 38) %>%
   set_col_width(c(0.3,rep(0.9/6,6))) %>%
   set_align(everywhere,-1,"center") %>%
   set_top_border(1,everywhere,1) %>%
-  set_bottom_border(31,everywhere,0) %>%
+  set_bottom_border(34,everywhere,0) %>%
   set_tb_padding(0) %>%
   set_caption("Estimating General Effects of Japan's ASEAN+1 Agreement Compared to All Regional Trade Agreements") %>%
   set_label("table_asean_steps")
 table_asean_steps
 ```
 
-
-
-
-
-
-#--------------------
-# 5. RTA Robustness Checks (ASEAN specific)
-
-## 5.1. Testing for potential reverse causality between trade and RTAs
 ```{r}
-## Identify future RTAs with custom function
-asean_selected_rta = asean_selected_rta %>%
-  group_by(iso3_o,iso3_d) %>%
-  mutate(rta_excl_asean_plus_lead3 = tlead(rta_excl_asean_plus,n=3,along_with = year),
-         rta_asean_plus_lead3 = tlead(rta_asean_plus, n=3, along_with = year))
+width(table_asean_steps) = 1 #Set relative table width for use in documents
+## Export table to word
+table_asean_steps_docx = as_flextable(table_asean_steps)
+save_as_docx(table_asean_steps_docx, path = "table_asean_steps.docx")
+```
+
+
+```{r}
+table_asean_detailed <- huxreg("Directional" = rta_poisson_intra_dir,
+                               "RTA Types" = rta_poisson_intra_all,
+                               "ENDG - RTA Types" = rta_ols_endo_det,
+                    coefs = c("Log distance" = "ln_dist",
+                              "Language" = "comlang_off",
+                              "Colonizer" = "comcol",
+                              "Colonial relation" = "col45",
+                              "Legal origins before 1991" = "comleg_pretrans",
+                              "Legal origins after 1991" = "comleg_posttrans",
+                              "Religion" = "comrelig",
+                              "GATT/WTO" = "gatt_wto_both",
+                              "RTA in RoW" = "rta_excl_asean_plus",
+                              "RTA ASEAN --> Japan" = "rta_asean_plus_a_j",
+                              "RTA Japan --> ASEAN" = "rta_asean_plus_j_a",
+                              "Japan in FTA & EIA" = "jpn_fta_eia",
+                              "CU in RoW" = "as.factor(rta_type_all_clean)1",
+                              "CU & EIA in RoW" = "as.factor(rta_type_all_clean)2",
+                              "EIA in RoW" = "as.factor(rta_type_all_clean)3",
+                              "FTA in RoW" = "as.factor(rta_type_all_clean)4",
+                              "FTA & EIA in RoW" = "as.factor(rta_type_all_clean)5",
+                              "PSA & EIA in RoW" = "as.factor(rta_type_all_clean)7"),
+                    number_format = 3,
+                    error_pos = "same",
+                    statistics = c("N"="nobs","R^2"="r.squared", "pseudo R^2"="pseudo.r.squared"),
+                    note = "Notes: Statistics based on author's calculations. All estimates are obtained with data for the period from 1965 to 2020 with 3-year intervals. Standard errors are clustered by country pair and are reported in parentheses. {stars}") %>%
+  insert_row("","(1) PPML", "(2) PPML", "(3) OLS", after = 0) %>%
+  insert_row(c("Fixed Effects", "Yes", "Yes", "Yes"), after = 21) %>%
+  insert_row(c("Intra-national trade", "Yes", "Yes", "No"), after = 22) %>%
+  #insert_row(c("Japan in other RTAs", "No", "No", "Yes", "No", "Yes", "No", "Yes"), after = 38) %>%
+  set_col_width(c(0.3,rep(0.9/3,3))) %>%
+  set_align(everywhere,-1,"center") %>%
+  set_top_border(1,everywhere,1) %>%
+  set_tb_borders(10,everywhere,0) %>%
+  set_tb_padding(0) %>%
+  set_caption("Estimating Heterogeneous Effects of Japan's ASEAN+1 Agreement") %>%
+  set_label("table_asean_detailed")
+table_asean_detailed
 ```
 
 ```{r}
-## Estimation
-rta_lead_asean = feols(ln_tradeflow_comtrade_d ~  rta_excl_asean_plus + rta_excl_asean_plus_lead3 + rta_asean_plus + rta_asean_plus_lead3 |
-                  fe_exp_year + fe_imp_year + pair_id,
-                  data = asean_selected_rta, 
-                  vcov = cluster ~ pair_id)
-
-summary(rta_lead_asean)
-#rta should be significant, but rta_lead3 NOT - this way we will correctly control for reverse causality
-
-#is we estimate endogeneity with OLS, then it's ~okay here, cause RTA for RoW is signif, but RTA_lead3 not. But ASEAN RTA is problem...
+width(table_asean_detailed) = 1 #Set relative table width for use in documents
+## Export table to word
+table_asean_detailed_docx = as_flextable(table_asean_detailed)
+save_as_docx(table_asean_detailed_docx, path = "table_asean_detailed.docx")
 ```
 
-## 5.2. Allowing for potential non-linear and phasing-in effects
 
-```{r}
+
+#---------------------
+
+
+```{r echo=FALSE}
+#  RTA Robustness Checks (ASEAN specific)
+## 2. Allowing for potential non-linear and phasing-in effects
+
 ## Identify past RTAs to see how stronger effects get over time
 asean_selected_rta = asean_selected_rta %>%
   group_by(iso3_o, iso3_d) %>%
@@ -887,110 +471,15 @@ asean_selected_rta = asean_selected_rta %>%
          rta_asean_plus_lag9 = tlag(rta_asean_plus,n=9,along_with = year))
 ```
 
-```{r}
-rta_lags_asean = feols(ln_tradeflow_comtrade_d ~  rta_asean_plus + rta_asean_plus_lag3 + rta_asean_plus_lag6 + rta_asean_plus_lag9 + rta_excl_asean_plus + rta_excl_asean_plus_lag3 + rta_excl_asean_plus_lag6 + rta_excl_asean_plus_lag9 |
-                    fe_exp_year + fe_imp_year + pair_id,
-                  data = asean_selected_rta, 
-                  vcov = cluster ~ pair_id)
+```{r echo=FALSE}
+#for PPML with intra
+#rta_lags_asean = fepois(tradeflow_comtrade_d ~ ln_dist + comlang_off + comcol + col45 + comleg_pretrans + comleg_posttrans + comrelig + gatt_wto_both + rta_asean_plus + rta_asean_plus_lag3 + rta_asean_plus_lag6 + rta_asean_plus_lag9 + rta_excl_asean_plus + rta_excl_asean_plus_lag3 + rta_excl_asean_plus_lag6 + rta_excl_asean_plus_lag9 |
+                  #   fe_exp_year + fe_imp_year + D_trade_ii,
+                  # data = asean_selected_rta, 
+                  # vcov = cluster ~ pair_id)
 
-summary(rta_lags_asean)
-#all coeffs of rta should be significant
-
-#in our case even with OLS nothing from ASEAN is significant. And for RoW lags are signif, but original no...
-```
-
-
-## 5.3. Addressing globalization effects
-
-
-
-
-# 6. RTA Robustness Checks (not ASEAN specific)
-
-## 6.1. Testing for potential reverse causality between trade and RTAs
-```{r}
-## Identify future RTAs with custom function
-asean_selected_rta = asean_selected_rta %>%
-  group_by(iso3_o,iso3_d) %>%
-  mutate(rta_lead3 = tlead(rta,n=3,along_with = year))
-```
-
-```{r}
-## Estimation
-rta_lead = fepois(tradeflow_comtrade_d ~  rta + rta_lead3 |
-                    fe_exp_year + fe_imp_year + pair_id,
-                  data = asean_selected_rta, 
-                  vcov = cluster ~ pair_id)
-
-summary(rta_lead)
-#rta should be significant, but rta_lead3 NOT - this way we will correctly control for reverse causality
-```
-
-
-## 6.2. Allowing for potential non-linear and phasing-in effects
-
-```{r}
-## Identify past RTAs to see how stronger effects get over time
-asean_selected_rta = asean_selected_rta %>%
-  group_by(iso3_o, iso3_d) %>%
-  mutate(rta_lag3 = tlag(rta,n=3,along_with = year),
-         rta_lag6 = tlag(rta,n=6,along_with = year),
-         rta_lag9 = tlag(rta,n=9,along_with = year))
-```
-
-```{r}
-rta_lags = fepois(tradeflow_comtrade_d ~  rta + rta_lag3 + rta_lag6 + rta_lag9 |
-                    fe_exp_year + fe_imp_year + pair_id,
-                  data = asean_selected_rta, 
-                  vcov = cluster ~ pair_id)
-
-summary(rta_lags)
-#all coeffs of rta should be significant
-```
-
-
-## 6.3. Addressing globalization effects
-
-
-
-
-
-
-
-
-
-
-
-TRIALS (NOT MAIN CODE)
-
-```{r}
-class(data_asean_selected$rta_type)
-table(data_asean_selected$rta)
-```
-
-```{r}
-table(data_asean_selected$country_id_d, data_asean_selected$country_exists_d)
-asean_selected_tradit %>% filter(wto_o == 1)
-```
-
-```{r}
-sum(is.na(asean_selected_tradit$Y_it))
-colSums(is.na(asean_selected_tradit))
-```
-
-
- Descriptive statistics
-Full Sample
-```{r}
-dim(data_asean_selected)[1] #number of observations
-table(data_asean_selected$rta)[2] #number of observations for RTA
-
-```
-
-Sample with 3 year intervals
-```{r}
-dim(asean_selected_rta)[1] #number of observations
-table(asean_selected_rta$rta)[2] #number of observations for RTA
+#summary(rta_lags_asean)
+# for RoW there is effect afterwards, for ASEAN no
 ```
 
 
