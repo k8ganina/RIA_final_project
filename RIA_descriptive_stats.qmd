@@ -142,22 +142,22 @@ trade_japan <- subset(asean_selected_rta, iso3_d=="JPN" | iso3_o=="JPN") %>%
             total_imports = sum(tradeflow_comtrade_d[iso3_d == "JPN"]),
             total_exports = sum(tradeflow_comtrade_d[iso3_o == "JPN"]))
 
-fig_1 <- ggplot(trade_japan, aes(x = year, y = total_trade/1000000)) +
+fig_a1 <- ggplot(trade_japan, aes(x = year, y = total_trade/1000000)) +
   geom_line() +
   geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
-  labs(title = "Figure 1: Japan's total trade from 1965 to 2020 \n(in thousands of current USD)", x = "Year", y = "Total trade (in million)") +
+  labs(title = "Figure A.1: Japan's total trade from 1965 to 2020.", x = "Year", y = "Total trade \n(in billion of current USD)") +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_x_continuous(breaks = seq(1968, 2018, 10), limits = c(1965, 2020))
 
-fig_1
+fig_a1
 ```
 
 ```{r}
 # Exporting the figure to png
 
-png("./fig_1.png", width=600, height=400)
-print(fig_1)
+png("./fig_a1.png", width=600, height=400)
+print(fig_a1)
 dev.off()
 ```
 
@@ -167,24 +167,24 @@ dev.off()
 ```{r}
 # We now plot a graph with both total imports and total exports of Japan to see their evolution between 1965 and 2008.
 
-fig_2 <- ggplot() +
+fig_1 <- ggplot() +
   geom_line(data=trade_japan, aes(x = year, y = total_imports/1000000, color="Imports")) +
   geom_line(data=trade_japan, aes(x = year, y = total_exports/1000000, color="Exports")) +
   geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
-  labs(title = "Figure 2: Japan's imports and exports from 1965 to 2020 \n(in thousands of current USD)", x = "Year", y = "Total amount of imports and exports \n(in million)") +
+  labs(title = "Figure 1: Japan's imports and exports from 1965 to 2020.", x = "Year", y = "Total imports and exports \n(in billion of current USD)") +
   theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5), legend.title = element_text(size = 12), legend.text=element_text(size=11)) +
   scale_x_continuous(breaks = seq(1968, 2018, 10), limits = c(1965, 2020)) +
   scale_color_manual(name = "Legend", values = c("Imports" = "blue", "Exports" = "orange"))
 
-fig_2
+fig_1
 ```
 
 ```{r}
 # Exporting the figure to png
 
-png("./fig_2.png", width=600, height=400)
-print(fig_2)
+png("./fig_1.png", width=600, height=400)
+print(fig_1)
 dev.off()
 ```
 
@@ -215,7 +215,7 @@ total_trade_ajcep <- subset(asean_selected_rta, iso3_d %in% c("BRN", "KHM", "IDN
 
 # We plot the evolution of the total amount of trade for each country of AJCEP from 1965 to 2020.
 
-fig_3 <- ggplot(total_trade_ajcep, aes(x = year)) +
+fig_2 <- ggplot(total_trade_ajcep, aes(x = year)) +
   geom_line(aes(y = total_trade_JPN/1000000, color = "Japan")) +
   geom_line(aes(y = total_trade_IDN/1000000, color = "Indonesia")) +
   geom_line(aes(y = total_trade_MYS/1000000, color = "Malaysia")) +
@@ -228,20 +228,20 @@ fig_3 <- ggplot(total_trade_ajcep, aes(x = year)) +
   geom_line(aes(y = total_trade_THA/1000000, color = "Thailand")) +
   geom_line(aes(y = total_trade_VNM/1000000, color = "Vietnam")) +
   scale_color_brewer(name="Legend", palette = "Paired") +
-  labs(x = "Year", y = "Total Trade (in millions)", title = "Figure 3: AJCEP member states' total trade from 1965 to 2020 \n(in thousands of current USD)") +
+  labs(x = "Year", y = "Total Trade \n(in billion of current USD)", title = "Figure 2: AJCEP member states' total trade from 1965 to 2020.") +
   theme_bw() +
   geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5), legend.title = element_text(size = 12), legend.text=element_text(size=11)) +
   scale_x_continuous(breaks = seq(1968, 2018, 10), limits = c(1965, 2020))
 
-fig_3
+fig_2
 ```
 
 ```{r}
 # Exporting the figure to png
 
-png("./fig_3.png", width=600, height=400)
-print(fig_3)
+png("./fig_2.png", width=600, height=400)
+print(fig_2)
 dev.off()
 ```
 
@@ -268,7 +268,7 @@ total_imports_ajcep <- subset(asean_selected_rta, iso3_d %in% c("BRN", "KHM", "I
 
 # We plot the total level of imports for each AJCEP country and for each year.
 
-fig_4 <- ggplot(total_imports_ajcep, aes(x = year)) +
+fig_a2 <- ggplot(total_imports_ajcep, aes(x = year)) +
   geom_line(aes(y = total_imports_JPN/1000000, color = "Japan")) +
   geom_line(aes(y = total_imports_IDN/1000000, color = "Indonesia")) +
   geom_line(aes(y = total_imports_MYS/1000000, color = "Malaysia")) +
@@ -281,20 +281,20 @@ fig_4 <- ggplot(total_imports_ajcep, aes(x = year)) +
   geom_line(aes(y = total_imports_THA/1000000, color = "Thailand")) +
   geom_line(aes(y = total_imports_VNM/1000000, color = "Vietnam")) +
   scale_color_brewer(name="Legend", palette = "Paired") +
-  labs(x = "Year", y = "Total imports (in millions)", title = "Figure 4: AJCEP member states' total imports from 1965 to 2020 \n(in thousands of current USD)") +
+  labs(x = "Year", y = "Total imports \n(in billion of current USD)", title = "Figure A.2: AJCEP member states' total imports from 1965 to 2020.") +
   theme_bw() +
   geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5), legend.title = element_text(size = 12), legend.text=element_text(size=11)) +
   scale_x_continuous(breaks = seq(1968, 2018, 10), limits = c(1965, 2020))
 
-fig_4
+fig_a2
 ```
 
 ```{r}
 # Exporting the figure to png
 
-png("./fig_4.png", width=600, height=400)
-print(fig_4)
+png("./fig_a2.png", width=600, height=400)
+print(fig_a2)
 dev.off()
 ```
 
@@ -321,7 +321,7 @@ total_exports_ajcep <- subset(asean_selected_rta, iso3_d %in% c("BRN", "KHM", "I
 
 # We plot the total level of imports for each AJCEP country and for each year.
 
-fig_5 <- ggplot(total_exports_ajcep, aes(x = year)) +
+fig_a3 <- ggplot(total_exports_ajcep, aes(x = year)) +
   geom_line(aes(y = total_exports_JPN/1000000, color = "Japan")) +
   geom_line(aes(y = total_exports_IDN/1000000, color = "Indonesia")) +
   geom_line(aes(y = total_exports_MYS/1000000, color = "Malaysia")) +
@@ -334,20 +334,20 @@ fig_5 <- ggplot(total_exports_ajcep, aes(x = year)) +
   geom_line(aes(y = total_exports_THA/1000000, color = "Thailand")) +
   geom_line(aes(y = total_exports_VNM/1000000, color = "Vietnam")) +
   scale_color_brewer(name="Legend", palette = "Paired") +
-  labs(x = "Year", y = "Total exports (in millions)", title = "Figure 5: AJCEP member states' total exports from 1965 to 2020 \n(in thousands of current USD)") +
+  labs(x = "Year", y = "Total exports \n(in billion of current USD)", title = "Figure A.3: AJCEP member states' total exports from 1965 to 2020.") +
   theme_bw() +
   geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
-  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5), legend.title = element_text(size = 12), legend.text=element_text(size=11)) +
   scale_x_continuous(breaks = seq(1968, 2018, 10), limits = c(1965, 2020))
 
-fig_5
+fig_a3
 ```
 
 ```{r}
 # Exporting the figure to png
 
-png("./fig_5.png", width=600, height=400)
-print(fig_5)
+png("./fig_a3.png", width=600, height=400)
+print(fig_a3)
 dev.off()
 ```
 
@@ -495,10 +495,10 @@ top_imports_2000_sum <- imports_japan_world %>%
 
 # We plot a graph (pie chart) for 2000.
 
-fig_6 <- ggplot(top_imports_2000_sum, aes(x = "", y = share_japan_imports, fill = iso3_o)) + 
+fig_3 <- ggplot(top_imports_2000_sum, aes(x = "", y = share_japan_imports, fill = iso3_o)) + 
   geom_bar(width = 1, stat = "identity") +
   coord_polar(theta = "y") +
-  labs(title = "Figure 6: Main exporters to Japan in 2000", fill = "Country", x = NULL, y = NULL) +
+  labs(title = "Figure 3: Main exporters to Japan in 2000", fill = "Country", x = NULL, y = NULL) +
   theme_void() +
   theme(legend.position = "left") +
   geom_text(aes(label = paste0(round(share_japan_imports, 2), "%")), 
@@ -506,14 +506,14 @@ fig_6 <- ggplot(top_imports_2000_sum, aes(x = "", y = share_japan_imports, fill 
   scale_fill_manual(name = "Country", values = brewer.pal(6, "Paired"),
                     labels = c("China", "Indonesia", "South Korea", "Others", "Taiwan", "United States"))
 
-fig_6
+fig_3
 ```
 
 ```{r}
 # Exporting the figure to png
 
-png("./fig_6.png")
-print(fig_6)
+png("./fig_3.png")
+print(fig_3)
 dev.off()
 ```
 
@@ -532,10 +532,10 @@ top_imports_2012_sum <- imports_japan_world %>%
 
 # We plot a graph (pie chart) for 2012.
 
-fig_7 <- ggplot(top_imports_2012_sum, aes(x = "", y = share_japan_imports, fill = iso3_o)) + 
+fig_4 <- ggplot(top_imports_2012_sum, aes(x = "", y = share_japan_imports, fill = iso3_o)) + 
   geom_bar(width = 1, stat = "identity") +
   coord_polar(theta = "y") +
-  labs(title = "Figure 7: Main exporters to Japan in 2012", fill = "Country", x = NULL, y = NULL) +
+  labs(title = "Figure 4: Main exporters to Japan in 2012", fill = "Country", x = NULL, y = NULL) +
   theme_void() +
   theme(legend.position = "left") +
   geom_text(aes(label = paste0(round(share_japan_imports, 2), "%")), 
@@ -543,14 +543,14 @@ fig_7 <- ggplot(top_imports_2012_sum, aes(x = "", y = share_japan_imports, fill 
   scale_fill_manual(name = "Country", values = brewer.pal(6, "Paired"),
                     labels = c("United Arab Emirates", "Australia", "China", "Others", "Saudi Arabia", "United States"))
 
-fig_7
+fig_4
 ```
 
 ```{r}
 # Exporting the figure to png
 
-png("./fig_7.png")
-print(fig_7)
+png("./fig_4.png")
+print(fig_4)
 dev.off()
 ```
 
@@ -589,10 +589,10 @@ top_exports_2000_sum <- exports_japan_world %>%
 
 # We plot a graph (pie chart) for 2000.
 
-fig_8 <- ggplot(top_exports_2000_sum, aes(x = "", y = share_japan_exports, fill = iso3_d)) + 
+fig_5 <- ggplot(top_exports_2000_sum, aes(x = "", y = share_japan_exports, fill = iso3_d)) + 
   geom_bar(width = 1, stat = "identity") +
   coord_polar(theta = "y") +
-  labs(title = "Figure 8: Main export destinations of Japan in 2000", fill = "Country", x = NULL, y = NULL) +
+  labs(title = "Figure 5: Main export destinations of Japan in 2000", fill = "Country", x = NULL, y = NULL) +
   theme_void() +
   theme(legend.position = "left") +
   geom_text(aes(label = paste0(round(share_japan_exports, 2), "%")), 
@@ -600,14 +600,14 @@ fig_8 <- ggplot(top_exports_2000_sum, aes(x = "", y = share_japan_exports, fill 
   scale_fill_manual(name = "Country", values = brewer.pal(6, "Paired"),
                     labels = c("China", "Hong Kong", "South Korea", "Others", "Taiwan", "United States"))
 
-fig_8
+fig_5
 ```
 
 ```{r}
 # Exporting the figure to png
 
-png("./fig_8.png")
-print(fig_8)
+png("./fig_5.png")
+print(fig_5)
 dev.off()
 ```
 
@@ -626,10 +626,10 @@ top_exports_2012_sum <- exports_japan_world %>%
 
 # We plot a graph (pie chart) for 2012.
 
-fig_9 <- ggplot(top_exports_2012_sum, aes(x = "", y = share_japan_exports, fill = iso3_d)) + 
+fig_6 <- ggplot(top_exports_2012_sum, aes(x = "", y = share_japan_exports, fill = iso3_d)) + 
   geom_bar(width = 1, stat = "identity") +
   coord_polar(theta = "y") +
-  labs(title = "Figure 9: Main export destinations of Japan in 2012", fill = "Country", x = NULL, y = NULL) +
+  labs(title = "Figure 6: Main export destinations of Japan in 2012", fill = "Country", x = NULL, y = NULL) +
   theme_void() +
   theme(legend.position = "left") +
   geom_text(aes(label = paste0(round(share_japan_exports, 2), "%")), 
@@ -637,14 +637,14 @@ fig_9 <- ggplot(top_exports_2012_sum, aes(x = "", y = share_japan_exports, fill 
   scale_fill_manual(name = "Country", values = brewer.pal(6, "Paired"),
                     labels = c("China", "South Korea", "Others", "Thailand", "Taiwan", "United States"))
 
-fig_9
+fig_6
 ```
 
 ```{r}
 # Exporting the figure to png
 
-png("./fig_9.png")
-print(fig_9)
+png("./fig_6.png")
+print(fig_6)
 dev.off()
 ```
 
