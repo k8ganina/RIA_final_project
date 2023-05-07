@@ -293,6 +293,14 @@ fig_rta_types
 
 #caption = "All coefficients are estimated with PPML including intra-trade as in specification (4) after replacing the vector of RTA with different RTA types and specifying direction of exports for ASEAN+1 RTA"
 ```
+
+```{r}
+png("fig_rta_types.png")
+print(fig_rta_types)
+dev.off()
+```
+
+
 ## 6. Testing for potential reverse causality between trade and RTAs
 ```{r}
 ## Identify future RTAs with custom function
