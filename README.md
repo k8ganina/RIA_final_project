@@ -1,0 +1,7 @@
+# RIA_final_project
+In this repository we do not have the main dataset used due to the too large size of it for free version of github.
+We used dataset from Conte, M., P. Cotterlaz and T. Mayer (2022), "The CEPII Gravity database". CEPII Working Paper N°2022-05, July 2022.
+For accessing the database please follow this link 
+
+This project estimates the effects of ASEAN+1 agreement with Japan and contains R code for gravity models as well as R code for descriptive analysis.
+Additionally, all the figures and tables created are stored here.
