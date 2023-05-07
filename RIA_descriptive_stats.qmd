@@ -1,7 +1,13 @@
 ---
 title: "Descriptive stats"
-author: "Gaelle, Adele, Kateryna"
-format: html
+author: "Kateryna Hanina, Gaelle Debree, Adele Verron"
+toc: true
+toc-location: body
+format:
+  html:
+    code-fold: false
+    self-contained: true
+    page-layout: full
 ---
 
 Countries (11): Brunei (BRN), Cambodia (KHM), Indonesia (IDN), Laos (LAO), Malaysia (MYS), Myanmar (MMR), Philippines (PHL), Singapore (SGP), Thailand (THA), Vietnam (VNM), Japan (JPN).
@@ -657,7 +663,4 @@ print(fig_6)
 dev.off()
 ```
 
-# Notes
-
-(1) Review format of tables in Japan exports and imports to and from ASEAN countries.
 

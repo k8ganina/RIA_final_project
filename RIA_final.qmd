@@ -295,7 +295,7 @@ fig_rta_types
 ```
 
 ```{r}
-png("fig_rta_types.png")
+png("fig_rta_types.png", width=500, height=400)
 print(fig_rta_types)
 dev.off()
 ```
