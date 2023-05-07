@@ -145,7 +145,7 @@ trade_japan <- subset(asean_selected_rta, iso3_d=="JPN" | iso3_o=="JPN") %>%
 fig_1 <- ggplot(trade_japan, aes(x = year, y = total_trade/1000000)) +
   geom_line() +
   geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
-  labs(title = "Figure 1: Evolution of Japan's total level of trade (imports and exports) \nfrom 1965 to 2020", x = "Year", y = "Total trade (in million)") +
+  labs(title = "Figure 1: Japan's total trade from 1965 to 2020 \n(in thousands of current USD)", x = "Year", y = "Total trade (in million)") +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_x_continuous(breaks = seq(1968, 2018, 10), limits = c(1965, 2020))
@@ -171,7 +171,7 @@ fig_2 <- ggplot() +
   geom_line(data=trade_japan, aes(x = year, y = total_imports/1000000, color="Imports")) +
   geom_line(data=trade_japan, aes(x = year, y = total_exports/1000000, color="Exports")) +
   geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
-  labs(title = "Figure 2: Evolution of Japan's levels of imports and exports \nfrom 1965 to 2020", x = "Year", y = "Total amount of imports and exports \n(in million)") +
+  labs(title = "Figure 2: Japan's imports and exports from 1965 to 2020 \n(in thousands of current USD)", x = "Year", y = "Total amount of imports and exports \n(in million)") +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_x_continuous(breaks = seq(1968, 2018, 10), limits = c(1965, 2020)) +
@@ -228,7 +228,7 @@ fig_3 <- ggplot(total_trade_ajcep, aes(x = year)) +
   geom_line(aes(y = total_trade_THA/1000000, color = "Thailand")) +
   geom_line(aes(y = total_trade_VNM/1000000, color = "Vietnam")) +
   scale_color_brewer(name="Legend", palette = "Paired") +
-  labs(x = "Year", y = "Total Trade (in millions)", title = "Figure 3: Evolution of AJCEP's member states' total level of \ntrade (imports and exports) from 1965 to 2020") +
+  labs(x = "Year", y = "Total Trade (in millions)", title = "Figure 3: AJCEP member states' total trade from 1965 to 2020 \n(in thousands of current USD)") +
   theme_bw() +
   geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -281,7 +281,7 @@ fig_4 <- ggplot(total_imports_ajcep, aes(x = year)) +
   geom_line(aes(y = total_imports_THA/1000000, color = "Thailand")) +
   geom_line(aes(y = total_imports_VNM/1000000, color = "Vietnam")) +
   scale_color_brewer(name="Legend", palette = "Paired") +
-  labs(x = "Year", y = "Total level of imports \n(in millions)", title = "Figure 4: Evolution of AJCEP's member states' total level of \nimports from 1965 to 2020") +
+  labs(x = "Year", y = "Total imports (in millions)", title = "Figure 4: AJCEP member states' total imports from 1965 to 2020 \n(in thousands of current USD)") +
   theme_bw() +
   geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -334,7 +334,7 @@ fig_5 <- ggplot(total_exports_ajcep, aes(x = year)) +
   geom_line(aes(y = total_exports_THA/1000000, color = "Thailand")) +
   geom_line(aes(y = total_exports_VNM/1000000, color = "Vietnam")) +
   scale_color_brewer(name="Legend", palette = "Paired") +
-  labs(x = "Year", y = "Total level of exports \n(in millions)", title = "Figure 5: Evolution of AJCEP's member states' total level of \nexports from 1965 to 2020") +
+  labs(x = "Year", y = "Total exports (in millions)", title = "Figure 5: AJCEP member states' total exports from 1965 to 2020 \n(in thousands of current USD)") +
   theme_bw() +
   geom_vline(xintercept = 2008, linetype = "dashed", color = "red") +
   theme(plot.title = element_text(hjust = 0.5)) +
@@ -412,20 +412,20 @@ japan_imports
 ```{r}
 # We create a table with Japan's total levels of imports and exports from and to each ASEAN country both in 2000 and 2012.
 
-table_1_exports <- as_hux(japan_exports) %>%
-  set_caption("Table 1: Japan level of export to each ASEAN country in 2000 and 2012\n") %>%
+table_2_exports <- as_hux(japan_exports) %>%
+  set_caption("Table 2: Japan exports to each ASEAN country in 2000 and 2012\n(in thousands of current USD)") %>%
   set_align(everywhere,-1,"center") %>%
   set_top_border(2, everywhere) %>%
   set_right_border(everywhere, 1) %>%
   set_bottom_border(3, everywhere) %>%
   set_number_format(-1, -1, fmt_pretty(digits=1)) %>%
   set_font_size(7.5) %>%
-  set_label("table_1_exports")
+  set_label("table_2_exports")
 
-table_1_exports
+table_2_exports
 
-table_2_imports <- as_hux(japan_imports) %>%
-  set_caption("Table 2: Japan level of import from each ASEAN country in 2000 and 2012\n") %>%
+table_1_imports <- as_hux(japan_imports) %>%
+  set_caption("Table 1: Japan imports from each ASEAN country in 2000 and 2012\n(in thousands of current USD)") %>%
   set_align(everywhere,-1,"center") %>%
   set_top_border(2, everywhere) %>%
   set_right_border(everywhere, 1) %>%
@@ -433,20 +433,20 @@ table_2_imports <- as_hux(japan_imports) %>%
   set_bottom_border_style("double") %>%
   set_number_format(-1, -1, fmt_pretty(digits=1)) %>%
   set_font_size(7.5) %>%
-  set_label("table_2_imports")
+  set_label("table_1_imports")
 
-table_2_imports
+table_1_imports
 
-width(table_1_exports) = 1.35
-width(table_2_imports) = 1.35
+width(table_2_exports) = 1.3
+width(table_1_imports) = 1.3
 
 # Export the tables to word
 
-table_1_exports_docx = as_flextable(table_1_exports)
-save_as_docx(table_1_exports_docx, path = "table_1_exports.docx")
+table_2_exports_docx = as_flextable(table_2_exports)
+save_as_docx(table_2_exports_docx, path = "table_2_exports.docx")
 
-table_2_imports_docx = as_flextable(table_2_imports)
-save_as_docx(table_2_imports_docx, path = "table_2_imports.docx")
+table_1_imports_docx = as_flextable(table_1_imports)
+save_as_docx(table_1_imports_docx, path = "table_1_imports.docx")
 ```
 
 ## 4. Japan's world trade partners
@@ -575,7 +575,7 @@ exports_japan_world$share_japan_exports <- as.numeric(gsub("%", "", exports_japa
 
 
 ```{r}
-# We calculate the top 5 exports destinations of Japan in 2000.
+# We calculate the top 5 export destinations of Japan in 2000.
 
 top_exports_2000_sum <- exports_japan_world %>%
   filter(year == 2000) %>%
@@ -592,7 +592,7 @@ top_exports_2000_sum <- exports_japan_world %>%
 fig_8 <- ggplot(top_exports_2000_sum, aes(x = "", y = share_japan_exports, fill = iso3_d)) + 
   geom_bar(width = 1, stat = "identity") +
   coord_polar(theta = "y") +
-  labs(title = "Figure 8: Main exports destinations of Japan in 2000", fill = "Country", x = NULL, y = NULL) +
+  labs(title = "Figure 8: Main export destinations of Japan in 2000", fill = "Country", x = NULL, y = NULL) +
   theme_void() +
   theme(legend.position = "left") +
   geom_text(aes(label = paste0(round(share_japan_exports, 2), "%")), 
@@ -612,7 +612,7 @@ dev.off()
 ```
 
 ```{r}
-# We calculate the top 5 exports destinations of Japan in 2012.
+# We calculate the top 5 export destinations of Japan in 2012.
 
 top_exports_2012_sum <- exports_japan_world %>%
   filter(year == 2012) %>%
@@ -629,7 +629,7 @@ top_exports_2012_sum <- exports_japan_world %>%
 fig_9 <- ggplot(top_exports_2012_sum, aes(x = "", y = share_japan_exports, fill = iso3_d)) + 
   geom_bar(width = 1, stat = "identity") +
   coord_polar(theta = "y") +
-  labs(title = "Figure 9: Main exports destinations of Japan in 2012", fill = "Country", x = NULL, y = NULL) +
+  labs(title = "Figure 9: Main export destinations of Japan in 2012", fill = "Country", x = NULL, y = NULL) +
   theme_void() +
   theme(legend.position = "left") +
   geom_text(aes(label = paste0(round(share_japan_exports, 2), "%")), 
